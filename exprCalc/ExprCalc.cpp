@@ -3,6 +3,7 @@
 #include <cmath>
 #include <map>
 #include <vector>
+#include <functional>
 
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/analyze.hpp> // Include the analyze function that checks a grammar for possible infinite cycles.

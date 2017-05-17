@@ -3,3 +3,6 @@ build/
 
 # Ignore KDevelop projects
 *.kdev4*
+
+# Ignore VS project settings
+*.vs
