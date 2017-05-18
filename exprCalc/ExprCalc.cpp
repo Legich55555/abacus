@@ -1,6 +1,6 @@
 #include "ExprCalc.h"
+#include "Universal.h"
 
-#include <cmath>
 #include <map>
 #include <vector>
 
@@ -28,242 +28,200 @@ out, print - операторы вывода. "string" - произвольна�
 
 namespace ExprCalc
 {
-    struct Universal
+    struct BinaryOperator
     {
-        enum class Types 
+        int Priority;
+        Universal(*Func)(const Universal&, const Universal&);
+    };
+
+    const std::map<char, BinaryOperator> BIN_OPERATORS = 
+    {
+        { '+', { 10, Add } },
+        { '-', { 10, Sub } }, 
+        { '/', { 20, Div } },
+        { '*', { 30, Mul } },
+        { '^', { 40, Pow } }
+    };
+
+    struct BinaryOperatorsStack
+    {
+        void PushOperator(const BinaryOperator& op)
         {
-            INVALID,
-            INTEGER,
-            REAL,
-            INT_SEQUENCE,
-            REAL_SEQUENCE,
-            VARIABLE,
-            FUTURE
-        };
-        
-        Types Type;
-        
-        union
-        {
-            int Integer;
-            float Real;
-            std::string Variable;
-            std::pair<int, int> IntSequence;
-            std::vector<float> RealSequence;
-        };
-        
-        Universal() : Type(Types::INVALID) { }
-        
-        Universal(const Universal& other) : Type(other.Type) 
-        {
-            switch(Type)
+            if ((!m_operators.empty()) && (m_operators.back().Priority >=  op.Priority))
             {
-                case Types::INTEGER: 
-                    Integer = other.Integer; 
-                    break;
-                case Types::REAL:
-                    Real = other.Real; 
-                    break;
-                case Types::VARIABLE:
-                    Variable = other.Variable; 
-                    break;
-                case Types::INT_SEQUENCE:
-                    IntSequence = other.IntSequence; 
-                    break;
-                case Types::REAL_SEQUENCE:
-                    RealSequence = other.RealSequence; 
-                    break;
-                default:
-                    Type = Types::INVALID;
+                Reduce();
             }
+
+            m_operators.push_back(op);
         }
         
-        explicit Universal(int v) : Type(Types::INTEGER), Integer(v) {}
-        explicit Universal(float v) : Type(Types::REAL), Real(v) {}
-        explicit Universal(int first, int last) : Type(Types::INT_SEQUENCE), IntSequence(first, last) {}
-        explicit Universal(std::vector<float>& realSequence) : Type(Types::REAL_SEQUENCE), RealSequence(realSequence) {}
-        explicit Universal(const std::string& varName) : Type(Types::VARIABLE), Variable(varName) {}   
-        
-        ~Universal()
+        void PushUniversal(const Universal& u)
         {
-            using std::string;
-            using std::pair;
-            using std::vector;
+            m_values.push_back(u);
+        }
+        
+        Universal Calculate()
+        {
+            assert(m_values.size() > 0U);
+            assert(m_values.size() > m_operators.size());
+            assert((m_values.size() - m_operators.size()) == 1U);
             
-            switch(Type)
+            while (!m_operators.empty())
             {
-                case Types::VARIABLE:
-                    Variable.~string(); 
-                    break;
-                case Types::INT_SEQUENCE:
-                    IntSequence.~pair<int, int>(); 
-                    break;
-                case Types::REAL_SEQUENCE:
-                    RealSequence.~vector<float>(); 
-                    break;
-                default:
-                    break;
+                Reduce();
             }
             
-            Type = Types::INVALID;
+            Universal result = m_values.front();
+            
+            return result;
         }
+        
+    private:
+        
+        void Reduce()
+        {
+            assert(m_values.size() > 1U);
+            assert(m_values.size() > m_operators.size());
+            assert(m_values.size() - m_operators.size() ==  1U);
+            
+            Universal right = m_values.back();
+            m_values.pop_back();
+            
+            Universal left = m_values.back();
+            m_values.pop_back();
+            
+            BinaryOperator op = m_operators.back();
+            m_operators.pop_back();
+            
+            Universal result = op.Func(left, right);
+            m_values.push_back(result);
+
+            int a = 5;
+        }
+
+        std::vector<BinaryOperator> m_operators;
+        std::vector<Universal> m_values;
     };
     
-    Universal Mul(const Universal& l, const Universal& r)
+    struct BinaryStacks
     {
-        if (l.Type == Universal::Types::INTEGER)
+        BinaryStacks()
         {
-            if (r.Type == Universal::Types::INTEGER)
-            {
-                return Universal(l.Integer * r.Integer);
-            }
-            else if (r.Type == Universal::Types::REAL)
-            {
-                return Universal(l.Integer * r.Real);
-            }
-        }
-        else if (l.Type == Universal::Types::REAL)
-        {
-            if (r.Type == Universal::Types::INTEGER)
-            {
-                return Universal(l.Integer * r.Integer);
-            }
-            else if (r.Type == Universal::Types::REAL)
-            {
-                return Universal(l.Integer * r.Real);
-            }
+            Open();
         }
 
-        throw 1;
-    }
-
-    Universal Add(const Universal& l, const Universal& r)
-    {
-        if (l.Type == Universal::Types::INTEGER)
+        void Open()
         {
-            if (r.Type == Universal::Types::INTEGER)
-            {
-                return Universal(l.Integer + r.Integer);
-            }
-            else if (r.Type == Universal::Types::REAL)
-            {
-                return Universal(l.Integer + r.Real);
-            }
-        }
-        else if (l.Type == Universal::Types::REAL)
-        {
-            if (r.Type == Universal::Types::INTEGER)
-            {
-                return Universal(l.Integer + r.Integer);
-            }
-            else if (r.Type == Universal::Types::REAL)
-            {
-                return Universal(l.Integer + r.Real);
-            }
+            m_stacks.push_back(BinaryOperatorsStack());
         }
 
-        throw 1;
-    }
+        void PushOperator(const BinaryOperator& op)
+        {
+            assert(!m_stacks.empty());
 
-    Universal Sub(const Universal& l, const Universal& r)
-    {
-        if (l.Type == Universal::Types::INTEGER)
-        {
-            if (r.Type == Universal::Types::INTEGER)
-            {
-                return Universal(l.Integer - r.Integer);
-            }
-            else if (r.Type == Universal::Types::REAL)
-            {
-                return Universal(l.Integer - r.Real);
-            }
-        }
-        else if (l.Type == Universal::Types::REAL)
-        {
-            if (r.Type == Universal::Types::INTEGER)
-            {
-                return Universal(l.Integer - r.Integer);
-            }
-            else if (r.Type == Universal::Types::REAL)
-            {
-                return Universal(l.Integer - r.Real);
-            }
+            m_stacks.back().PushOperator(op);
         }
 
-        throw 1;
-    }
+        void PushUniversal(const Universal& u)
+        {
+            assert(!m_stacks.empty());
 
-    Universal Div(const Universal& l, const Universal& r)
-    {
-        if (l.Type == Universal::Types::INTEGER)
-        {
-            if (r.Type == Universal::Types::INTEGER)
-            {
-                return Universal(l.Integer / r.Integer);
-            }
-            else if (r.Type == Universal::Types::REAL)
-            {
-                return Universal(l.Integer / r.Real);
-            }
-        }
-        else if (l.Type == Universal::Types::REAL)
-        {
-            if (r.Type == Universal::Types::INTEGER)
-            {
-                return Universal(l.Integer / r.Integer);
-            }
-            else if (r.Type == Universal::Types::REAL)
-            {
-                return Universal(l.Integer / r.Real);
-            }
+            m_stacks.back().PushUniversal(u);
         }
 
-        throw 1;
-    }
+        void Close()
+        {
+            assert(m_stacks.size() > 1);
 
-    Universal Pow(const Universal& l, const Universal& r)
-    {
-        if (l.Type == Universal::Types::INTEGER)
-        {
-            if (r.Type == Universal::Types::INTEGER)
-            {
-                return Universal(static_cast<float>(std::pow(l.Integer, r.Integer)));
-            }
-            else if (r.Type == Universal::Types::REAL)
-            {
-                return Universal(static_cast<float>(std::pow(l.Integer, r.Real)));
-            }
-        }
-        else if (l.Type == Universal::Types::REAL)
-        {
-            if (r.Type == Universal::Types::INTEGER)
-            {
-                return Universal(static_cast<float>(std::pow(l.Integer, r.Integer)));
-            }
-            else if (r.Type == Universal::Types::REAL)
-            {
-                return Universal(static_cast<float>(std::pow(l.Integer, r.Real)));
-            }
+            Universal u = m_stacks.back().Calculate();
+            m_stacks.pop_back();
+
+            m_stacks.back().PushUniversal(u);
         }
 
-        throw 1;
-    }
+        Universal Calculate()
+        {
+            assert(m_stacks.size() == 1U);
 
-    bool IsNumber(const Universal& v)
-    {
-        return v.Type == Universal::Types::INTEGER || v.Type == Universal::Types::REAL;
-    }
-    
-    struct Stacks
-    {
+            Universal result = m_stacks.back().Calculate();
+            m_stacks.pop_back();
+
+            return result;
+        }
+
+    private:
+        std::vector<BinaryOperatorsStack> m_stacks;
     };
     
+    struct MapStack
+    {
+        void PushArgument(Universal&& u)
+        {
+            if (!u.IsValid())
+            {
+                throw 1;
+            }
+            
+            if (m_argument.IsValid())
+            {
+                throw 1;
+            }
+            
+            m_argument = u;
+        }
+        
+        void PushIdentifier(std::string&& id)
+        {
+            if (id.empty())
+            {
+                throw 1;
+            }
+            
+            if (m_identifier.empty())
+            {
+                m_identifier = id;
+            }
+            else
+            {
+                throw 1;
+            }
+        }
+        
+        Universal Calculate()
+        {
+            return Universal(0, 1);
+        }
+        
+    private:
+        Universal m_argument;
+        std::string m_identifier;
+    };
+    
+    struct ReduceStack
+    {
+        void PushArgument(Universal&& u)
+        {
+        }
+        
+        void PushIdentifier(std::string&& id)
+        {
+        }
+        
+        Universal Calculate()
+        {
+            return Universal(0);
+        }
+        
+    private:
+        std::vector<Universal> m_arguments;
+        std::vector<std::string> m_identifiers;
+    };
     
     using namespace tao::TAOCPP_PEGTL_NAMESPACE;
 
-    struct Integer : seq< opt< one<'+', '-'> >, plus<digit> > { };
+	struct Real : seq< opt< one<'+', '-'> >, star<digit>, one<'.'>, plus<digit> > { };
 
-    struct Real : seq< opt< one<'+', '-'> >, star<digit>, one<'.'>, plus<digit> > { };
+	struct Integer : seq< opt< one<'+', '-'> >, plus<digit>, not_at< one<'.'> > > { };
 
     struct Variable : identifier { };
     
@@ -283,60 +241,18 @@ namespace ExprCalc
                 template< typename... > class Action,
                 template< typename... > class Control,
                 typename Input >
-        static bool match( Input& in, Stacks& stacks )
+        static bool match(Input& in, BinaryStacks& stacks)
         {
-            // Look for the longest match of the input against the operators in the operator map.
-
-            return match( in, stacks, std::string() );
-        }
-
-    private:
-        
-        struct BinaryOperators
-        {
-            struct Operator
+            const auto opIt = BIN_OPERATORS.find(in.peek_char(0));
+            if (opIt != BIN_OPERATORS.cend())
             {
-                int Priority;
-                std::function<Universal(const Universal&, const Universal&)> Func;
-            };
-            
-            BinaryOperators()
-            {
-                m_Operators = 
-                { 
-                    { '^', { 10, Pow } },
-                    { '*', { 20, Mul } }, 
-                    { '/', { 30, Div } },
-                    { '+', { 40, Add } },
-                    { '-', { 50, Sub } }                
-                };
+                stacks.PushOperator(opIt->second);
+                in.bump(1);
+
+                return true;
             }
-
-        private:
-            std::map<char, Operator> m_Operators;
-        };
-        
-        template< typename Input >
-        static bool match( Input& in, const Stacks& stacks, std::string t )
-        {
-    //          if( in.size( t.size() + 1 ) > t.size() ) {
-    //             t += in.peek_char( t.size() );
-    //             const auto i = b.ops().lower_bound( t );
-    //             if( i != b.ops().end() ) {
-    //                if( match( in, b, s, t ) ) {
-    //                   return true;
-    //                }
-    //                if( i->first == t ) {
-    //                   // While we are at it, this rule also performs the task of what would
-    //                   // usually be an associated action: To push the matched operator onto
-    //                   // the operator stack.
-    //                   s.push( i->second );
-    //                   in.bump( t.size() );
-    //                   return true;
-    //                }
-    //             }
-    //          }
-            return false;
+            
+            return false;;
         }
     };
     
@@ -349,7 +265,7 @@ namespace ExprCalc
                 template< typename... > class Action,
                 template< typename... > class Control,
                 typename Input >
-        static bool match( Input& in, Stacks& stacks )
+        static bool match( Input& in, BinaryStacks& stacks )
         {
             int a = 5;
             
@@ -371,7 +287,7 @@ namespace ExprCalc
         struct MapLambda;
         
         template< typename Input >
-        static bool match( Input& in, Stacks& stacks, std::string t )
+        static bool match( Input& in, BinaryStacks& stacks, std::string t )
         {
     //          if( in.size( t.size() + 1 ) > t.size() ) {
     //             t += in.peek_char( t.size() );
@@ -403,7 +319,7 @@ namespace ExprCalc
                 template< typename... > class Action,
                 template< typename... > class Control,
                 typename Input >
-        static bool match( Input& in, Stacks& stacks )
+        static bool match( Input& in, BinaryStacks& stacks )
         {
             // Look for the longest match of the input against the operators in the operator map.
 
@@ -424,7 +340,7 @@ namespace ExprCalc
         struct ReduceLambda;
     
         template< typename Input >
-        static bool match( Input& in, Stacks& stacks, std::string t )
+        static bool match( Input& in, BinaryStacks& stacks, std::string t )
         {
     //          if( in.size( t.size() + 1 ) > t.size() ) {
     //             t += in.peek_char( t.size() );
@@ -464,23 +380,95 @@ namespace ExprCalc
     struct Action<Expression>
     {
        template< typename Input >
-       static void apply( const Input& in, Stacks& )
+       static void apply(const Input& in, BinaryStacks&)
        {
            int a = 5;
+           
+           auto b = in.begin();
+           auto e = in.end();
+           
+           std::string s = in.string();
+           std::string s1 = in.string();
           //s.push( std::stol( in.string() ) );
        }
     };
-
     
-    void ParseProgram(const std::string& text)
+    // This action will be called when the number rule matches; it converts the
+   // matched portion of the input to a long and pushes it onto the operand
+   // stack.
+/*
+   template<>
+   struct action< number >
+   {
+      template< typename Input >
+      static void apply( const Input& in, const operators&, stacks& s )
+      {
+         s.push( std::stol( in.string() ) );
+      }
+   };
+*/
+    template<>
+    struct Action<Integer>
+    {
+        template< typename Input >
+        static void apply(const Input& in, BinaryStacks& stacks)
+        {
+            std::string strVal = in.string();
+            int val = std::stoi(strVal);
+            stacks.PushUniversal(Universal(val));
+        }
+    };
+
+    template<>
+    struct Action<Real>
+    {
+        template< typename Input >
+        static void apply(const Input& in, BinaryStacks& stacks)
+        {
+            std::string strVal = in.string();
+            float val = std::stof(strVal);
+            stacks.PushUniversal(Universal(val));
+        }
+    };
+
+    template<>
+    struct Action< one<'('> >
+    {
+        static void apply0(BinaryStacks& stacks)
+        {
+            stacks.Open();
+        }
+    };
+
+    template<>
+    struct Action< one<')'> >
+    {
+        static void apply0(BinaryStacks& stacks)
+        {
+            stacks.Close();
+        }
+    };
+
+	Universal Calculate(const std::string& expression)
     {
         analyze<Expression>();
-        
-        Stacks stacks;
-        
-        memory_input<> in(text, "std::cin");
-        bool result = parse< Expression, Action >(in, stacks);
 
-        Expression expr;
+        BinaryStacks stacks;
+        memory_input<> input(expression, "entryExpr");
+        bool parseResult = parse<Expression, Action>(input, stacks);
+
+		if (parseResult)
+		{
+			Universal result = stacks.Calculate();
+
+			return result;
+		}
+		else
+		{
+			assert(parseResult);
+		}
+		
+		// Return invalid value
+		return Universal();
     }
 }

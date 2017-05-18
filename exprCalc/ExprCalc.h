@@ -1,8 +1,9 @@
 # pragma once
 
 #include <string>
+#include "Universal.h"
 
 namespace ExprCalc
 {
-    void ParseProgram(const std::string& text);
+	Universal Calculate(const std::string& expression);
 }
