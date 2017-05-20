@@ -15,7 +15,7 @@ namespace ExprCalc
             REAL,
             INT_SEQUENCE,
             REAL_SEQUENCE,
-            VARIABLE,
+            VARIABLE,   // TODO: figure out if it is really needed.
             FUTURE
         };
         
