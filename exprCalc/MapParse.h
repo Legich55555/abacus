@@ -1,112 +1,121 @@
 # pragma once
 
-#include <tao/pegtl.hpp>
+#include "BracesParse.h"
 #include "ExprCalc.h"
 #include "Universal.h"
+#include <tao/pegtl.hpp>
 
 namespace ExprCalc
 {
     using namespace tao::TAOCPP_PEGTL_NAMESPACE;
-    
-    template<typename Input>
-    size_t findOpeningBracket(const std::string& funcName, const Input& in)
+
+    namespace Lambda
     {
+        struct LambdaBegin : seq< star<space>, list<identifier, space>, string<'-', '>'> > { };
         
-        
-        return 0;
+        template<typename Rule>
+        struct IdentifierAction : nothing<Rule> { };
+            
+        template<>
+        struct IdentifierAction<identifier>
+        {
+            template< typename Input >
+            static void apply(const Input& in, std::vector<std::string>& lambdaParameters)
+            {
+                lambdaParameters.push_back(in.string());
+            }
+        };
+
+        template<typename Input>
+        std::vector<std::string> ParseLambda(Input& input)
+        {
+            std::vector<std::string> lambdaParameters;
+            if (parse<LambdaBegin, IdentifierAction>(input, lambdaParameters) == false)
+            {
+                throw parse_error("Invalid lambda syntax.", input);
+            }
+            
+            return lambdaParameters;
+        }
     }
-    
-    template<typename Input>
-    size_t findClosingBracket(size_t openingBracketPos, const Input& in)
-    {
-        return 0;
-    }
-    
-    
     
     namespace Map
     {
-        struct Stack
-        {
-            void PushArgument(Universal&& u)
-            {
-                if (!u.IsValid())
-                {
-                    throw 1;
-                }
-                
-                if (m_argument.IsValid())
-                {
-                    throw 1;
-                }
-                
-                m_argument = u;
-            }
-            
-            void PushIdentifier(std::string&& id)
-            {
-                if (id.empty())
-                {
-                    throw 1;
-                }
-                
-                if (m_identifier.empty())
-                {
-                    m_identifier = id;
-                }
-                else
-                {
-                    throw 1;
-                }
-            }
-            
-            Universal Calculate()
-
-            {
-                return Universal(0, 1);
-            }
-            
-        private:
-            Universal m_argument;
-            std::string m_identifier;
-        };
-    
-//     struct MapLambda : seq< 
-//         star<space>,
-//         identifier,
-//         star<space>,
-//         string< '-', '>'>,
-//         star<space>,
-//         Expression
-//         > { };
-    
+        
+        struct MapBegin : seq< string<'m', 'a', 'p'>, star<space>, at< one<'('> > > { };
+        //struct LambdaBegin : seq< star<space>, identifier, star<space>, string<'-','>' > > { };
         
         template<typename Rule>
-        struct Action : nothing<Rule> { };
-    
+        struct LambdaAction : nothing<Rule> { };
+        
         template<>
-        struct Action<seq<string<'m', 'a', 'p'>, star<space>, one<'('>>>
+        struct LambdaAction<identifier>
         {
             template< typename Input >
-            static void apply(const Input& in)
+            static void apply(const Input& in, std::string& identifier)
             {
-                auto b = in.begin();
-                auto e = in.end();
-                
-                std::string s = in.string();
-
-                std::string s1 = in.string();
-                //s.push( std::stol( in.string() ) );
+                identifier = in.string();
             }
         };
         
-        
-        struct MapBegin : seq<string<'m', 'a', 'p'>, star<space>, one<'('>> { };
-            
         template< typename Input >
-        bool Parse( Input&& in, const Variables& variables, Universal& result)
+        bool Parse(Input& input, const Variables& variables, Universal& result)
         {
-            return false;
+            if (parse<Map::MapBegin>(input, variables) == false)
+            {
+                return false;
+            }
+
+            std::vector<SubExpr> subExpressions = ParseBraces(input, 0, BraceType::ROUND);
+            if (subExpressions.size() != 2U)
+            {
+                throw parse_error("Invalid usage of map()", input);
+            }
+
+            size_t bumped;
+            Universal firstValue = Calculate(
+                input.current() + subExpressions[0].Offset,
+                subExpressions[0].Size,
+                "Map parameter",
+                bumped,
+                variables);
+            if (firstValue.Type != Universal::Types::INT_SEQUENCE)
+            {
+                throw parse_error("First map parameter is not valid.", input);
+            }
+            
+            //memory_input<> lambdaInput(input.current() + subExpressions[1].Offset, subExpressions[1].Size, "Map");
+            
+            // TODO: implement Calculate which will take input by reference.
+            input.bump(subExpressions[1].Offset);
+            
+            std::vector<std::string> parameters = Lambda::ParseLambda(input);
+            if (parameters.size() != 1U)
+            {
+                throw parse_error("Invalid usage of lambda in map()", input);
+            }
+
+            std::vector<int> mapResult;
+            mapResult.reserve(firstValue.IntSequence.size());
+            
+            size_t lambdaSize;
+            for (int i : firstValue.IntSequence)
+            {
+                Variables lambdaParams = { {parameters.front(), Universal(i)} };
+                Universal callResult = Calculate(input.current(), input.size(), "Map lambda", lambdaSize, lambdaParams);
+                if (callResult.Type != Universal::Types::INTEGER)
+                {                    
+                    throw parse_error("Runtime error in lambda", input);
+                }                
+                
+                mapResult.push_back(callResult.Integer);
+            }
+            
+            result = Universal(mapResult);
+            
+            input.bump(lambdaSize + 1U);
+            
+            return true;
         }
     }    
 }

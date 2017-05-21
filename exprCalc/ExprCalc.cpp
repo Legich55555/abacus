@@ -232,6 +232,7 @@ namespace ExprCalc
         const char* expressionData,
         std::size_t size,
         const std::string& exprName,
+        size_t& bumped,
         const Variables& variables)
     {
         BinaryStacks stacks;
@@ -239,11 +240,18 @@ namespace ExprCalc
         
         try
         {
+            const char* start = input.current();
+            
+            
             bool parseResult = parse<Expression, Action>(input, stacks, variables);
             
             if (parseResult)
             {
                 Universal result = stacks.Calculate();
+                
+                const char* stop = input.current();
+                
+                bumped = stop - start;
                 
                 return result;
             }
@@ -264,13 +272,15 @@ namespace ExprCalc
         const std::string& exprName,
         const Variables& variables)
     {
-        return Calculate(expression.data(), expression.size(), exprName, variables);        
+        size_t bumped;
+        return Calculate(expression.data(), expression.size(), exprName, bumped, variables);        
     }
 
     Universal Calculate(
         const std::string& expression,
         const Variables& variables)
     {
-        return Calculate(expression.data(), expression.size(), "Calculate", variables);        
+        size_t bumped;
+        return Calculate(expression.data(), expression.size(), "Calculate", bumped, variables);        
     }    
 }

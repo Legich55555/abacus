@@ -18,7 +18,7 @@ struct SubExpr
 enum BraceType { CURLY, ROUND };
 
 template<typename Input>
-std::vector<SubExpr> ParseBrackets(
+std::vector<SubExpr> ParseBraces(
     Input& input,
     const size_t offset, // offset is where the first external opening bracket is.
     const BraceType braceType)
@@ -59,7 +59,7 @@ std::vector<SubExpr> ParseBrackets(
             if ((braceType == CURLY && roundBalance == 0 && curlyBalance == 1U) ||
                 (braceType == ROUND && roundBalance == 1 && curlyBalance == 0U))
             {
-                result.push_back(SubExpr {subExprStartIdx, idx - 1U});
+                result.push_back(SubExpr {subExprStartIdx, idx - subExprStartIdx});
                 subExprStartIdx = idx + 1U;
             }
         }
@@ -73,7 +73,7 @@ std::vector<SubExpr> ParseBrackets(
         throw parse_error("There is no pair for opening bracket", input);
     }
     
-    result.push_back(SubExpr {subExprStartIdx, idx - 1U});
+    result.push_back(SubExpr {subExprStartIdx, idx - subExprStartIdx - 1U});
 
     return result;
 }

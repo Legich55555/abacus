@@ -51,6 +51,21 @@ int main()
     
     unsigned errorsNumber = 0;
 
+    errorsNumber += CheckExpression(
+        " map({1, 5}, x->x * x )",
+        {},
+        ExprCalc::Universal(std::vector<int> {1, 4, 9, 16, 25}));
+    
+    errorsNumber += CheckExpression(
+        "map({1, 2*2+1}, x->x * x ) ",
+        {},
+        ExprCalc::Universal(std::vector<int> {1, 4, 9, 16, 25}));
+    
+    errorsNumber += CheckExpression(
+        "map   ({1, 2*2+1}, x->x * x ) ",
+        {},
+        ExprCalc::Universal(std::vector<int> {1, 4, 9, 16, 25}));
+    
     errorsNumber +=  CheckInvalidExpression(
         "(a + UNDEFINED_VARIABLE)",
         {
@@ -86,10 +101,8 @@ int main()
     errorsNumber += CheckExpression("+.1", {},  ExprCalc::Universal(0.1f));
     errorsNumber += CheckExpression("-1", {},  ExprCalc::Universal(-1));
     errorsNumber += CheckExpression("-1.0", {},  ExprCalc::Universal(-1.f));
-    
     errorsNumber += CheckExpression(" {  1 , 2 } ", {}, ExprCalc::Universal(1, 2));
     errorsNumber += CheckExpression(" { 1,2 }", {}, ExprCalc::Universal(1, 2));
-
     errorsNumber += CheckExpression("((1))", {},  ExprCalc::Universal(1));
     errorsNumber += CheckExpression("((1 + -2 + -1*+2.0))", {},  ExprCalc::Universal(-3.0f));
     errorsNumber += CheckExpression("1 + 1", {},  ExprCalc::Universal(2));

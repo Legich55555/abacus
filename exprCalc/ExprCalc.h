@@ -12,6 +12,7 @@ namespace ExprCalc
         const char* expressionData,
         std::size_t size,
         const std::string& exprName,
+        size_t& bumped,
         const Variables& variables);
     
     Universal Calculate(
