@@ -3,6 +3,7 @@
 #include "BinaryStack.h"
 #include "MapParse.h"
 #include "ReduceParse.h"
+#include "SequenceParse.h"
 
 #include <map>
 #include <vector>
@@ -48,19 +49,19 @@ namespace ExprCalc
 {
     using namespace tao::TAOCPP_PEGTL_NAMESPACE;
     
-    struct Real : seq< opt< one<'+', '-'> >, star<digit>, one<'.'>, plus<digit> > { };
+    struct Real : seq<opt< one<'+', '-'> >, star<digit>, one<'.'>, plus<digit> > { };
     
-    struct Integer : seq< opt< one<'+', '-'> >, plus<digit>, not_at< one<'.'> > > { };
+    struct Integer : seq<opt< one<'+', '-'> >, plus<digit>, not_at< one<'.'> >> { };
     
     struct Variable : identifier { };
     
-    struct Brackets;
+    struct RoundBraces;
     struct MapCall;
     struct ReduceCall;
     struct IntSeq;
     struct Expression;
     
-    struct Atomic : sor< MapCall, Integer, Real, Variable, Brackets, ReduceCall, IntSeq > { };
+    struct Atomic : sor< MapCall, Integer, Real, Variable, RoundBraces, ReduceCall, IntSeq >  { };
     
     struct BinaryOp
     {
@@ -72,13 +73,13 @@ namespace ExprCalc
             template< typename... > class Action,
             template< typename... > class Control,
             typename Input >
-        static bool match(Input& in, BinaryStacks& stacks, const Variables&)
+        static bool match(Input& input, BinaryStacks& stacks, const Variables&)
         {
-            const auto opIt = BIN_OPERATORS.find(in.peek_char(0));
+            const auto opIt = BIN_OPERATORS.find(input.peek_char(0));
             if (opIt != BIN_OPERATORS.cend())
             {
                 stacks.PushOperator(opIt->second);
-                in.bump(1);
+                input.bump(1);
                 
                 return true;
             }
@@ -97,10 +98,10 @@ namespace ExprCalc
             template< typename... > class Action,
             template< typename... > class Control,
             typename Input>
-        static bool match(Input& in, BinaryStacks& stacks, const Variables& variables)
+        static bool match(Input& input, BinaryStacks& stacks, const Variables& variables)
         {
             Universal result;
-            if (Map::Parse(in, variables, result))
+            if (Map::Parse(input, variables, result))
             {
                 stacks.PushUniversal(result);
                 return true;
@@ -120,10 +121,10 @@ namespace ExprCalc
             template< typename... > class Action,
             template< typename... > class Control,
             typename Input>
-        static bool match(Input& in, BinaryStacks& stacks, const Variables& variables)
+        static bool match(Input& input, BinaryStacks& stacks, const Variables& variables)
         {
             Universal result;
-            if (Reduce::Parse(in, variables, result))
+            if (Reduce::Parse(input, variables, result))
             {
                 stacks.PushUniversal(result);
                 return true;
@@ -133,11 +134,32 @@ namespace ExprCalc
         }
     };
     
-    struct Expression : list< Atomic, BinaryOp, space > { };
+    struct IntSeq 
+    {
+        using analyze_t = analysis::generic< analysis::rule_type::ANY >;
+        
+        template< 
+            apply_mode,
+            rewind_mode,
+            template< typename... > class Action,
+            template< typename... > class Control,
+            typename Input>
+        static bool match(Input& input, BinaryStacks& stacks, const Variables& variables)
+        {
+            Universal result;
+            if (Sequence::Parse(input, variables, result))
+            {
+                stacks.PushUniversal(result);
+                return true;
+            }
+            
+            return false;
+        }
+    };
+
+    struct Expression : seq< star<space>, list< Atomic, BinaryOp, space >, star<space> > { };
     
-    struct Brackets : seq< one<'('>, pad< Expression, space>, one<')'> > { };
-    
-    struct IntSeq : seq< one<'{'>, pad<Expression, space>, one<','>, pad<Expression, space>, one<'}'> > { };
+    struct RoundBraces : seq< one<'('>, pad< Expression, space>, one<')'> > { };
     
     struct String : seq< one<'"'>, star<alnum>, one<'"'> > { };
     
@@ -145,23 +167,6 @@ namespace ExprCalc
     
     template<typename Rule>
     struct Action : nothing<Rule> { };
-    
-    template<>
-    struct Action<Expression>
-    {
-        template< typename Input >
-        static void apply(const Input& in, BinaryStacks&, const Variables&)
-        {
-            int a = 5;
-            
-            auto b = in.begin();
-            auto e = in.end();
-            
-            std::string s = in.string();
-            std::string s1 = in.string();
-            //s.push( std::stol( in.string() ) );
-        }
-    };
     
     template<>
     struct Action<Integer>
@@ -223,12 +228,14 @@ namespace ExprCalc
         }
     };
     
-    Universal Calculate(const std::string& expression, const Variables& variables)
+    Universal Calculate(
+        const char* expressionData,
+        std::size_t size,
+        const std::string& exprName,
+        const Variables& variables)
     {
-        analyze<Expression>();
-        
         BinaryStacks stacks;
-        memory_input<> input(expression, "entryExpr");
+        memory_input<> input(expressionData, size, exprName);
         
         try
         {
@@ -251,4 +258,19 @@ namespace ExprCalc
         // Return invalid value
         return Universal();
     }
+    
+    Universal Calculate(
+        const std::string& expression,
+        const std::string& exprName,
+        const Variables& variables)
+    {
+        return Calculate(expression.data(), expression.size(), exprName, variables);        
+    }
+
+    Universal Calculate(
+        const std::string& expression,
+        const Variables& variables)
+    {
+        return Calculate(expression.data(), expression.size(), "Calculate", variables);        
+    }    
 }

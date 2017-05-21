@@ -14,12 +14,12 @@ unsigned CheckExpression(
 {
     if (ExprCalc::Calculate(expression, variables) == expectedValue)
     {
-        std::cout << "PASSED test for " << expression << std::endl;
+        std::cout << "PASSED test for \"" << expression << "\"" << std::endl;
         return 0U;
     }
     else
     {
-        std::cout << "FAILED test for " << expression << std::endl;
+        std::cout << "FAILED test for \"" << expression << "\"" << std::endl;
         return 1U;
     }
 }
@@ -75,6 +75,9 @@ int main()
         },
         ExprCalc::Universal(0));
     
+    errorsNumber += CheckExpression(" 1.0", {}, ExprCalc::Universal(1.f));
+    errorsNumber += CheckExpression(" 1.0 ", {}, ExprCalc::Universal(1.f));
+    errorsNumber += CheckExpression("1.0 ", {}, ExprCalc::Universal(1.f));
     errorsNumber += CheckExpression("1.0", {}, ExprCalc::Universal(1.f));
     errorsNumber += CheckExpression("9.0", {},  ExprCalc::Universal(9.f));
     errorsNumber += CheckExpression("-1.0", {},  ExprCalc::Universal(-1.f));
@@ -83,6 +86,10 @@ int main()
     errorsNumber += CheckExpression("+.1", {},  ExprCalc::Universal(0.1f));
     errorsNumber += CheckExpression("-1", {},  ExprCalc::Universal(-1));
     errorsNumber += CheckExpression("-1.0", {},  ExprCalc::Universal(-1.f));
+    
+    errorsNumber += CheckExpression(" {  1 , 2 } ", {}, ExprCalc::Universal(1, 2));
+    errorsNumber += CheckExpression(" { 1,2 }", {}, ExprCalc::Universal(1, 2));
+
     errorsNumber += CheckExpression("((1))", {},  ExprCalc::Universal(1));
     errorsNumber += CheckExpression("((1 + -2 + -1*+2.0))", {},  ExprCalc::Universal(-3.0f));
     errorsNumber += CheckExpression("1 + 1", {},  ExprCalc::Universal(2));

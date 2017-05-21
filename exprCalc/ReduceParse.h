@@ -31,7 +31,7 @@ namespace ExprCalc
         };
     
         template< typename Input >
-        bool Parse( Input&& in, const Variables& variables, Universal& result)
+        bool Parse( Input& in, const Variables& variables, Universal& result)
         {
             return false;
         }

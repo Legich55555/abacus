@@ -19,15 +19,15 @@
                   Type = other.Type;
                   break;
               case Types::VARIABLE:
-                  Variable = other.Variable; 
+                  new (&Variable) decltype(Variable)(other.Variable);
                   Type = other.Type;
                   break;
               case Types::INT_SEQUENCE:
-                  IntSequence = other.IntSequence; 
+                  new (&IntSequence) decltype(IntSequence)(other.IntSequence);
                   Type = other.Type;
                   break;
               case Types::REAL_SEQUENCE:
-                  RealSequence = other.RealSequence; 
+                  new (&RealSequence) decltype(RealSequence)(other.RealSequence); 
                   Type = other.Type;
                   break;
               default:
@@ -83,27 +83,7 @@
       {
           this->~Universal();
           
-          switch(other.Type)
-          {
-              case Types::INTEGER:
-                  new (this) Universal(other.Integer);
-                  break;
-              case Types::REAL:
-                  new (this) Universal(other.Real);
-                  break;
-              case Types::VARIABLE:
-                  new (this) Universal(other.Variable);
-                  break;
-              case Types::INT_SEQUENCE:
-                  new (this) Universal(other.IntSequence);
-                  break;
-              case Types::REAL_SEQUENCE:
-                  new (this) Universal(other.RealSequence);
-                  break;
-              default:
-                  Type = Types::INVALID;
-                  throw 1;
-          }
+          new (this) Universal(other);
           
           return *this;
       }
