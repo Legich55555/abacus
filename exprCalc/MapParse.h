@@ -42,7 +42,7 @@ namespace ExprCalc
     namespace Map
     {
         
-        struct MapBegin : seq< string<'m', 'a', 'p'>, star<space>, at< one<'('> > > { };
+        struct MapBegin : seq< string<'m', 'a', 'p'>, star<space>, one<'('> > { };
         //struct LambdaBegin : seq< star<space>, identifier, star<space>, string<'-','>' > > { };
         
         template<typename Rule>
@@ -66,16 +66,16 @@ namespace ExprCalc
                 return false;
             }
 
-            std::vector<SubExpr> subExpressions = ParseBraces(input, 0, BraceType::ROUND);
-            if (subExpressions.size() != 2U)
-            {
-                throw parse_error("Invalid usage of map()", input);
-            }
+            //std::vector<SubExpr> subExpressions = ParseBraces(input, 0, BraceType::ROUND);
+            //if (subExpressions.size() != 2U)
+            //{
+            //    throw parse_error("Invalid usage of map()", input);
+            //}
 
             size_t bumped;
             Universal firstValue = Calculate(
-                input.current() + subExpressions[0].Offset,
-                subExpressions[0].Size,
+                input.current(),
+                input.size(),
                 "Map parameter",
                 bumped,
                 variables);
@@ -87,7 +87,7 @@ namespace ExprCalc
             //memory_input<> lambdaInput(input.current() + subExpressions[1].Offset, subExpressions[1].Size, "Map");
             
             // TODO: implement Calculate which will take input by reference.
-            input.bump(subExpressions[1].Offset);
+           // input.bump(subExpressions[1].Offset);
             
             std::vector<std::string> parameters = Lambda::ParseLambda(input);
             if (parameters.size() != 1U)
