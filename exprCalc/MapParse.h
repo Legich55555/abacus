@@ -9,9 +9,11 @@ namespace ExprCalc
 {
     using namespace tao::TAOCPP_PEGTL_NAMESPACE;
 
-    namespace Lambda
+    namespace Map
     {
-        struct LambdaBegin : seq< star<space>, list<identifier, space>, string<'-', '>'> > { };
+        struct MapBegin : seq< string<'m', 'a', 'p'>, star<space>, one<'('> > { };
+        
+        struct LambdaBegin : seq< pad< one<','>, space>, identifier, pad< string<'-','>' >, space> > { };
         
         template<typename Rule>
         struct IdentifierAction : nothing<Rule> { };
@@ -20,100 +22,64 @@ namespace ExprCalc
         struct IdentifierAction<identifier>
         {
             template< typename Input >
-            static void apply(const Input& in, std::vector<std::string>& lambdaParameters)
+            static void apply(const Input& in, std::string& lambdaParameter)
             {
-                lambdaParameters.push_back(in.string());
+                lambdaParameter = in.string();
             }
         };
 
-        template<typename Input>
-        std::vector<std::string> ParseLambda(Input& input)
-        {
-            std::vector<std::string> lambdaParameters;
-            if (parse<LambdaBegin, IdentifierAction>(input, lambdaParameters) == false)
-            {
-                throw parse_error("Invalid lambda syntax.", input);
-            }
-            
-            return lambdaParameters;
-        }
-    }
-    
-    namespace Map
-    {
-        
-        struct MapBegin : seq< string<'m', 'a', 'p'>, star<space>, one<'('> > { };
-        //struct LambdaBegin : seq< star<space>, identifier, star<space>, string<'-','>' > > { };
-        
-        template<typename Rule>
-        struct LambdaAction : nothing<Rule> { };
-        
-        template<>
-        struct LambdaAction<identifier>
-        {
-            template< typename Input >
-            static void apply(const Input& in, std::string& identifier)
-            {
-                identifier = in.string();
-            }
-        };
-        
         template< typename Input >
         bool Parse(Input& input, const Variables& variables, Universal& result)
         {
-            if (parse<Map::MapBegin>(input, variables) == false)
+            if (parse<MapBegin>(input) == false)
             {
                 return false;
             }
 
-            //std::vector<SubExpr> subExpressions = ParseBraces(input, 0, BraceType::ROUND);
-            //if (subExpressions.size() != 2U)
-            //{
-            //    throw parse_error("Invalid usage of map()", input);
-            //}
-
-            size_t bumped;
+            size_t parsed;
             Universal firstValue = Calculate(
                 input.current(),
                 input.size(),
                 "Map parameter",
-                bumped,
+                parsed,
                 variables);
             if (firstValue.Type != Universal::Types::INT_SEQUENCE)
             {
                 throw parse_error("First map parameter is not valid.", input);
             }
             
-            //memory_input<> lambdaInput(input.current() + subExpressions[1].Offset, subExpressions[1].Size, "Map");
+            input.bump(parsed);
             
-            // TODO: implement Calculate which will take input by reference.
-           // input.bump(subExpressions[1].Offset);
-            
-            std::vector<std::string> parameters = Lambda::ParseLambda(input);
-            if (parameters.size() != 1U)
+            std::string lambdaParameter;
+            if (parse<LambdaBegin, IdentifierAction>(input, lambdaParameter) == false)
             {
-                throw parse_error("Invalid usage of lambda in map()", input);
+                throw parse_error("Invalid lambda syntax.", input);
             }
-
-            std::vector<int> mapResult;
+            
+            std::vector<float> mapResult;
             mapResult.reserve(firstValue.IntSequence.size());
             
-            size_t lambdaSize;
+            size_t lambdaExprSize;
             for (int i : firstValue.IntSequence)
             {
-                Variables lambdaParams = { {parameters.front(), Universal(i)} };
-                Universal callResult = Calculate(input.current(), input.size(), "Map lambda", lambdaSize, lambdaParams);
-                if (callResult.Type != Universal::Types::INTEGER)
+                Variables lambdaParams = { {lambdaParameter, Universal(i)} };
+                Universal callResult = Calculate(input.current(), input.size(), "Map lambda", lambdaExprSize, lambdaParams);
+                if (!callResult.IsNumber())
                 {                    
                     throw parse_error("Runtime error in lambda", input);
                 }                
                 
-                mapResult.push_back(callResult.Integer);
+                mapResult.push_back(callResult.Real);
+            }
+            
+            input.bump(lambdaExprSize);
+            
+            if (parse< pad< one<')'>, space> >(input) == false)
+            {
+                throw parse_error("Invalid map() syntax - no closing round brace.", input);
             }
             
             result = Universal(mapResult);
-            
-            input.bump(lambdaSize + 1U);
             
             return true;
         }

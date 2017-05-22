@@ -51,6 +51,16 @@ int main()
     
     unsigned errorsNumber = 0;
 
+//     errorsNumber += CheckExpression(
+//         " reduce({1, 5}, 1, x y -> x * y )",
+//         {},
+//         ExprCalc::Universal(120));
+    
+    errorsNumber += CheckExpression(
+        " 4 * reduce( map({0, 500}, i -> (-1.0)^i / (2.0 * i + 1)), 1, x y -> x + y )",
+        {},
+        ExprCalc::Universal(3.145f));
+    
     errorsNumber += CheckExpression(
         " map({1, 5}, x->x * x )",
         {},

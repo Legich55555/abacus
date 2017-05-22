@@ -53,7 +53,7 @@ namespace ExprCalc
     
     struct Integer : seq<opt< one<'+', '-'> >, plus<digit>, not_at< one<'.'> >> { };
     
-    struct Variable : identifier { };
+    struct Variable : seq<identifier, not_at< seq< star<space>, one<'('> > > > { };
     
     struct RoundBraces;
     struct MapCall;
@@ -61,7 +61,7 @@ namespace ExprCalc
     struct IntSeq;
     struct Expression;
     
-    struct Atomic : sor< MapCall, Integer, Real, Variable, RoundBraces, ReduceCall, IntSeq >  { };
+    struct Atomic : sor< MapCall, ReduceCall, Integer, Real, Variable, RoundBraces, IntSeq >  { };
     
     struct BinaryOp
     {

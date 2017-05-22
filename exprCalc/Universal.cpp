@@ -105,11 +105,11 @@
           {
               if (r.Type == Universal::Types::INTEGER)
               {
-                  return Universal(l.Integer * r.Integer);
+                  return Universal(l.Real * r.Integer);
               }
               else if (r.Type == Universal::Types::REAL)
               {
-                  return Universal(l.Integer * r.Real);
+                  return Universal(l.Real * r.Real);
               }
           }
 
@@ -161,11 +161,11 @@
           {
               if (r.Type == Universal::Types::INTEGER)
               {
-                  return Universal(l.Integer - r.Integer);
+                  return Universal(l.Real - r.Integer);
               }
               else if (r.Type == Universal::Types::REAL)
               {
-                  return Universal(l.Integer - r.Real);
+                  return Universal(l.Real - r.Real);
               }
           }
 
@@ -189,11 +189,11 @@
           {
               if (r.Type == Universal::Types::INTEGER)
               {
-                  return Universal(l.Integer / r.Integer);
+                  return Universal(l.Real / r.Integer);
               }
               else if (r.Type == Universal::Types::REAL)
               {
-                  return Universal(l.Integer / r.Real);
+                  return Universal(l.Real / r.Real);
               }
           }
 
@@ -206,22 +206,26 @@
           {
               if (r.Type == Universal::Types::INTEGER)
               {
-                  return Universal(static_cast<decltype(l.Integer)>(std::pow(l.Integer, r.Integer)));
+                  const auto v = std::pow(l.Integer, r.Integer);
+                  return Universal(static_cast<decltype(l.Integer)>(v));
               }
               else if (r.Type == Universal::Types::REAL)
               {
-                  return Universal(static_cast<float>(std::pow(l.Integer, r.Real)));
+                  const auto v = std::pow(l.Integer, r.Real);
+                  return Universal(static_cast<float>(v));
               }
           }
           else if (l.Type == Universal::Types::REAL)
           {
               if (r.Type == Universal::Types::INTEGER)
               {
-                  return Universal(static_cast<float>(std::pow(l.Real, r.Integer)));
+                  const auto v = std::pow(l.Real, r.Integer);
+                  return Universal(static_cast<float>(v));
               }
               else if (r.Type == Universal::Types::REAL)
               {
-                  return Universal(static_cast<float>(std::pow(l.Real, r.Real)));
+                  const auto v = std::pow(l.Real, r.Real);
+                  return Universal(static_cast<float>(v));
               }
           }
 
