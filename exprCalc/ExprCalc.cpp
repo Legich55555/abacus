@@ -187,7 +187,7 @@ namespace ExprCalc
         static void apply(const Input& in, BinaryStacks& stacks, const Variables&)
         {
             std::string strVal = in.string();
-            float val = std::stof(strVal);
+            double val = std::stof(strVal);
             stacks.PushUniversal(Universal(val));
         }
     };

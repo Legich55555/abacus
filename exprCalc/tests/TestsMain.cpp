@@ -1,3 +1,4 @@
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 
@@ -12,7 +13,36 @@ unsigned CheckExpression(
     const ExprCalc::Variables& variables,
     const ExprCalc::Universal& expectedValue)
 {
-    if (ExprCalc::Calculate(expression, variables) == expectedValue)
+    const ExprCalc::Universal result = ExprCalc::Calculate(expression, variables);
+    
+    if (result == expectedValue)
+    {
+        std::cout << "PASSED test for \"" << expression << "\"" << std::endl;
+        return 0U;
+    }
+    else
+    {
+        std::cout << "FAILED test for \"" << expression << "\"" << std::endl;
+        return 1U;
+    }
+}
+
+unsigned CheckExpression(
+    const std::string& expression, 
+    const ExprCalc::Variables& variables,
+    const double& expectedValue,
+    const double& maxDelta)
+{
+    const ExprCalc::Universal result = ExprCalc::Calculate(expression, variables);
+    if (result.Type != ExprCalc::Universal::Types::REAL)
+    {
+        std::cout << "FAILED test for \"" << expression << "\"" << std::endl;
+        return 1U;
+    }
+    
+    double delta = std::abs(expectedValue - result.Real);
+    
+    if (delta < maxDelta)
     {
         std::cout << "PASSED test for \"" << expression << "\"" << std::endl;
         return 0U;
@@ -59,7 +89,14 @@ int main()
     errorsNumber += CheckExpression(
         " 4 * reduce( map({0, 500}, i -> (-1.0)^i / (2.0 * i + 1)), 0, x y -> x + y )",
         {},
-        ExprCalc::Universal(3.145f));
+        3.1415,
+        0.005);
+    
+    errorsNumber += CheckExpression(
+        " 4 * reduce( map({0, 500}, i -> (-1.0)^i / (2 * i + 1)), 0, x y -> x + y )",
+        {},
+        3.1415,
+        0.005);
     
     errorsNumber += CheckExpression(
         " map({1, 5}, x->x * x )",

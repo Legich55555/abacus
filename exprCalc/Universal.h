@@ -15,7 +15,6 @@ namespace ExprCalc
             REAL,
             INT_SEQUENCE,
             REAL_SEQUENCE,
-            VARIABLE,   // TODO: figure out if it is really needed.
             FUTURE
         };
         
@@ -24,10 +23,10 @@ namespace ExprCalc
         union
         {
             int Integer;
-            float Real;
+            double Real;
             std::string Variable;
             std::vector<int> IntSequence;
-            std::vector<float> RealSequence;
+            std::vector<double> RealSequence;
         };
         
         Universal() : Type(Types::INVALID) { }
@@ -36,10 +35,9 @@ namespace ExprCalc
         Universal& operator=(const Universal& other);
         
         explicit Universal(int v) : Type(Types::INTEGER), Integer(v) {}
-        explicit Universal(float v) : Type(Types::REAL), Real(v) {}
+        explicit Universal(double v) : Type(Types::REAL), Real(v) {}
         explicit Universal(const std::vector<int> sequence) : Type(Types::INT_SEQUENCE), IntSequence(sequence) {}
-        explicit Universal(const std::vector<float>& sequence) : Type(Types::REAL_SEQUENCE), RealSequence(sequence) {}
-        explicit Universal(const std::string& varName) : Type(Types::VARIABLE), Variable(varName) {}   
+        explicit Universal(const std::vector<double>& sequence) : Type(Types::REAL_SEQUENCE), RealSequence(sequence) {}
         
         Universal(int start, int stop);
         

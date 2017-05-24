@@ -101,7 +101,7 @@ namespace ExprCalc
             }
             else
             {
-                for (float f : firstValue.RealSequence)
+                for (double f : firstValue.RealSequence)
                 {
                     Variables lambdaParams = { 
                         {lambdaParameters[0], intermediateValue},

@@ -18,10 +18,6 @@
                   Real = other.Real; 
                   Type = other.Type;
                   break;
-              case Types::VARIABLE:
-                  new (&Variable) decltype(Variable)(other.Variable);
-                  Type = other.Type;
-                  break;
               case Types::INT_SEQUENCE:
                   new (&IntSequence) decltype(IntSequence)(other.IntSequence);
                   Type = other.Type;
@@ -63,14 +59,11 @@
           
           switch(Type)
           {
-              case Types::VARIABLE:
-                  Variable.~string(); 
-                  break;
               case Types::INT_SEQUENCE:
                   IntSequence.~vector<int>(); 
                   break;
               case Types::REAL_SEQUENCE:
-                  RealSequence.~vector<float>(); 
+                  RealSequence.~vector<double>(); 
                   break;
               default:
                   break;
@@ -212,7 +205,7 @@
               else if (r.Type == Universal::Types::REAL)
               {
                   const auto v = std::pow(l.Integer, r.Real);
-                  return Universal(static_cast<float>(v));
+                  return Universal(static_cast<double>(v));
               }
           }
           else if (l.Type == Universal::Types::REAL)
@@ -220,12 +213,12 @@
               if (r.Type == Universal::Types::INTEGER)
               {
                   const auto v = std::pow(l.Real, r.Integer);
-                  return Universal(static_cast<float>(v));
+                  return Universal(static_cast<double>(v));
               }
               else if (r.Type == Universal::Types::REAL)
               {
                   const auto v = std::pow(l.Real, r.Real);
-                  return Universal(static_cast<float>(v));
+                  return Universal(static_cast<double>(v));
               }
           }
 
@@ -262,11 +255,6 @@
         if (l.Type == Universal::Types::REAL_SEQUENCE)
         {
           return l.RealSequence == r.RealSequence;
-        }
-
-        if (l.Type == Universal::Types::VARIABLE)
-        {
-          return l.Variable == r.Variable;
         }
 
         assert(false);

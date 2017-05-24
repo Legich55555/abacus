@@ -27,6 +27,15 @@ namespace ExprCalc
                 lambdaParameter = in.string();
             }
         };
+        
+//         template<typename Input, typename ST>
+//         Universal CalculateSequence(Input& input, const Universal& inputSequence, const std::string& paramName)
+//         {
+//             std::vector<ST> outputSequence;
+//             outputSequence.reserve(inputSequence);
+//             
+//             return Universal();
+//         }
 
         template< typename Input >
         bool Parse(Input& input, const Variables& variables, Universal& result)
@@ -43,7 +52,8 @@ namespace ExprCalc
                 "Map parameter",
                 parsed,
                 variables);
-            if (firstValue.Type != Universal::Types::INT_SEQUENCE)
+            if (firstValue.Type != Universal::Types::INT_SEQUENCE ||
+                firstValue.IntSequence.empty())
             {
                 throw parse_error("First map parameter is not valid.", input);
             }
@@ -56,20 +66,55 @@ namespace ExprCalc
                 throw parse_error("Invalid lambda syntax.", input);
             }
             
-            std::vector<float> mapResult;
-            mapResult.reserve(firstValue.IntSequence.size());
-            
+            // Calculate the first item of sequence
             size_t lambdaExprSize;
-            for (int i : firstValue.IntSequence)
+            auto seqIt = firstValue.IntSequence.cbegin();
+            Variables lambdaParams = { {lambdaParameter, Universal(*seqIt)} };
+            Universal callResult = Calculate(input.current(), input.size(), "Map lambda", lambdaExprSize, lambdaParams);
+            if (!callResult.IsNumber())
+            {                    
+                throw parse_error("Runtime error in map() lambda. Result is expected to be a number.", input);
+            }  
+            
+            if (Universal::Types::INTEGER == callResult.Type)
             {
-                Variables lambdaParams = { {lambdaParameter, Universal(i)} };
-                Universal callResult = Calculate(input.current(), input.size(), "Map lambda", lambdaExprSize, lambdaParams);
-                if (!callResult.IsNumber())
-                {                    
-                    throw parse_error("Runtime error in lambda", input);
-                }                
-                
-                mapResult.push_back(callResult.Real);
+                std::vector<int> intResult;
+                intResult.reserve(firstValue.IntSequence.size());
+                intResult.push_back(callResult.Integer);
+
+                while (++seqIt != firstValue.IntSequence.cend())
+                {
+                    lambdaParams = { {lambdaParameter, Universal(*seqIt)} };
+                    callResult = Calculate(input.current(), input.size(), "Map lambda", lambdaExprSize, lambdaParams);
+                    if (Universal::Types::INTEGER != callResult.Type)
+                    {                    
+                        throw parse_error("Runtime error in map() lambda. Result is expected to be an integer number.", input);
+                    }
+                    
+                    intResult.push_back(callResult.Integer);
+                }
+            
+                result = Universal(intResult);
+            }
+            else
+            {
+                std::vector<double> doubleResult;
+                doubleResult.reserve(firstValue.IntSequence.size());
+                doubleResult.push_back(callResult.Real);
+
+                while (++seqIt != firstValue.IntSequence.cend())
+                {
+                    lambdaParams = { {lambdaParameter, Universal(*seqIt)} };
+                    callResult = Calculate(input.current(), input.size(), "Map lambda", lambdaExprSize, lambdaParams);
+                    if (Universal::Types::REAL != callResult.Type)
+                    {                    
+                        throw parse_error("Runtime error in map() lambda. Result is expected to be an doubleing point number.", input);
+                    }
+                    
+                    doubleResult.push_back(callResult.Real);
+                }
+            
+                result = Universal(doubleResult);
             }
             
             input.bump(lambdaExprSize);
@@ -78,8 +123,6 @@ namespace ExprCalc
             {
                 throw parse_error("Invalid map() syntax - no closing round brace.", input);
             }
-            
-            result = Universal(mapResult);
             
             return true;
         }
