@@ -23,4 +23,14 @@ namespace ExprCalc
     Universal Calculate(
         const std::string& expression,
         const Variables& variables = {});
+    
+     template<typename Input>
+     Universal Calculate(
+        Input& input,
+        const std::string& exprName,
+        const Variables& variables)
+     {
+         size_t bumped;
+         return Calculate(input.current(), input.size(), exprName, bumped, variables);
+     }
 }
