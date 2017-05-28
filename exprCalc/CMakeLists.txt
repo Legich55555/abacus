@@ -1,9 +1,13 @@
 
-add_library(exprCalc STATIC 
-    ExprCalc.h 
-    ExprCalc.cpp
+add_library(exprCalc STATIC
+    Abacus.h
+    Abacus.cpp
     Universal.h
-    Universal.cpp)
+    Universal.cpp
+    StmtParse.h 
+    MapParse.h
+    ReduceParse.h
+    SequenceParse.h)
 set_property(TARGET exprCalc PROPERTY CXX_STANDARD 14)
 
 add_subdirectory(tests/)

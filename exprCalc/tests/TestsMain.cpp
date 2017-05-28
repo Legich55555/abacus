@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "exprCalc/ExprCalc.h"
+#include "exprCalc/Abacus.h"
 
 /*
  * @brief Check expresssions
@@ -10,10 +10,10 @@
  */
 unsigned CheckExpression(
     const std::string& expression, 
-    const ExprCalc::Variables& variables,
-    const ExprCalc::Universal& expectedValue)
+    const Abacus::State& variables,
+    const Abacus::Universal& expectedValue)
 {
-    const ExprCalc::Universal result = ExprCalc::Calculate(expression, variables);
+    const Abacus::Universal result = Abacus::Calculate(expression, variables);
     
     if (result == expectedValue)
     {
@@ -29,12 +29,12 @@ unsigned CheckExpression(
 
 unsigned CheckExpression(
     const std::string& expression, 
-    const ExprCalc::Variables& variables,
+    const Abacus::State& variables,
     const double& expectedValue,
     const double& maxDelta)
 {
-    const ExprCalc::Universal result = ExprCalc::Calculate(expression, variables);
-    if (result.Type != ExprCalc::Universal::Types::REAL)
+    const Abacus::Universal result = Abacus::Calculate(expression, variables);
+    if (result.Type != Abacus::Universal::Types::REAL)
     {
         std::cout << "FAILED test for \"" << expression << "\"" << std::endl;
         return 1U;
@@ -56,9 +56,9 @@ unsigned CheckExpression(
 
 unsigned CheckInvalidExpression(
     const std::string& expression, 
-    const ExprCalc::Variables& variables)
+    const Abacus::State& variables)
 {
-    if (!ExprCalc::Calculate(expression, variables).IsValid())
+    if (!Abacus::Calculate(expression, variables).IsValid())
     {
         std::cout << "PASSED test for " << expression << std::endl;
         return 0U;
@@ -70,24 +70,116 @@ unsigned CheckInvalidExpression(
     }    
 }
 
+unsigned CheckStatement(
+    const std::string& statement, 
+    const Abacus::State& variables,
+    const Abacus::ExecResult& expectedResult,
+    const double& maxDelta)
+{
+    Abacus::ExecResult result = Abacus::Execute(statement, variables);
+    if (!result.Success)
+    {
+        std::cout << "FAILED test for \"" << statement << "\"" << std::endl;
+        return 1U;
+    }
+    
+    if (expectedResult.Variables.size() != result.Variables.size())
+    {
+        std::cout << "FAILED test for \"" << statement << "\"" << std::endl;
+        return 1U;
+    }
+    
+    for (const auto& var : expectedResult.Variables)
+    {
+        auto v = result.Variables.find(var.first);
+        
+        if (v == result.Variables.cend())
+        {
+            std::cout << "FAILED test for \"" << statement << "\"" << std::endl;
+            return 1U;
+        }
+        
+        if (v->second != var.second)
+        {
+            std::cout << "FAILED test for \"" << statement << "\"" << std::endl;
+            return 1U;
+        }
+    }
+    
+    // TODO: check if it a valid operation
+    if (expectedResult.Output != result.Output)
+    {
+        std::cout << "FAILED test for \"" << statement << "\"" << std::endl;
+        return 1U;
+    }
+
+    std::cout << "PASSED test for \"" << statement << "\"" << std::endl;
+
+    return 0;
+}
+
+unsigned CheckProgramPi()
+{
+    const std::vector<std::string> program
+    {
+        "var n = 500",
+        "var sequence = map({0, n}, i -> (-1.0)^i / (2 * i + 1))",
+        "var pi = 4 * reduce(sequence, 0, x y -> x + y)",
+        "print \"pi = \"",
+        "out pi"
+    };
+    
+    Abacus::State variables;
+    std::vector<std::string> output;
+
+    for (const auto& statement : program)
+    {
+        Abacus::ExecResult result = Abacus::Execute(statement, variables);
+        if (!result.Success)
+        {
+            std::cout << "FAILED test for program" << std::endl;
+            return 1U;
+        }
+        
+        variables.insert(result.Variables.cbegin(), result.Variables.cend());
+        output.insert(output.end(), result.Output.cbegin(), result.Output.cend());
+    }
+    
+    std::cout << "PASSED test for program" << std::endl;
+
+    return 0;
+}
+
 int main()
 {
-    std::string programText = 
-    "var n = 500"
-    "var sequence = map({0, n}, i -> (-1)^i / (2 * i + 1))"
-    "var pi = 4 * reduce(sequence, 0, x y -> x + y)"
-    "print \"pi = \""
-    "out pi";
     
     unsigned errorsNumber = 0;
 
-//     errorsNumber += CheckExpression(
-//         " reduce({1, 5}, 1, x y -> x * y )",
-//         {},
-//         ExprCalc::Universal(120));
+    errorsNumber += CheckProgramPi();
+    
+    errorsNumber += CheckStatement(
+        "var a = 5",
+        { },
+        Abacus::ExecResult { true, {},{{"a", Abacus::Universal(5)}} },
+        0.
+    );
+    
+    errorsNumber += CheckStatement(
+        "print \"pi = \"",
+        { },
+        Abacus::ExecResult { true, {"pi = "},{} },
+        0.
+    );
+    
+    errorsNumber += CheckStatement(
+        "out 2 + 2",
+        { },
+        Abacus::ExecResult { true, {"4"},{} },
+        0.
+    );
     
     errorsNumber += CheckExpression(
-        " 4 * reduce( map({0, 500000}, i -> (-1.0)^i / (2.0 * i + 1)), 0, x y -> x + y )",
+        " 4 * reduce( map({0, 50000}, i -> (-1.0)^i / (2.0 * i + 1)), 0, x y -> x + y )",
         {},
         3.1415,
         0.005);
@@ -107,71 +199,78 @@ int main()
     errorsNumber += CheckExpression(
         " map({1, 5}, x->x * x )",
         {},
-        ExprCalc::Universal(std::vector<int> {1, 4, 9, 16, 25}));
+        Abacus::Universal(std::vector<int> {1, 4, 9, 16, 25}));
     
     errorsNumber += CheckExpression(
         "map({1, 2*2+1}, x->x * x ) ",
         {},
-        ExprCalc::Universal(std::vector<int> {1, 4, 9, 16, 25}));
+        Abacus::Universal(std::vector<int> {1, 4, 9, 16, 25}));
     
     errorsNumber += CheckExpression(
         "map   ({1, 2*2+1}, x->x * x ) ",
         {},
-        ExprCalc::Universal(std::vector<int> {1, 4, 9, 16, 25}));
+        Abacus::Universal(std::vector<int> {1, 4, 9, 16, 25}));
     
     errorsNumber +=  CheckInvalidExpression(
         "(a + UNDEFINED_VARIABLE)",
         {
-            {"a", ExprCalc::Universal(1)},
-            {"b", ExprCalc::Universal(5)},            
+            {"a", Abacus::Universal(1)},
+            {"b", Abacus::Universal(5)},            
         });
 
     errorsNumber += CheckExpression(
         "(a + b)",
         {
-            {"a", ExprCalc::Universal(1)},
-            {"b", ExprCalc::Universal(5)},            
+            {"a", Abacus::Universal(1)},
+            {"b", Abacus::Universal(5)},            
         },
-        ExprCalc::Universal(6));
+        Abacus::Universal(6));
     
     errorsNumber += CheckExpression(
         "(a + b) - ccccccccc12",
         {
-            {"a", ExprCalc::Universal(1)},
-            {"b", ExprCalc::Universal(5)},            
-            {"ccccccccc12", ExprCalc::Universal(6)},            
+            {"a", Abacus::Universal(1)},
+            {"b", Abacus::Universal(5)},            
+            {"ccccccccc12", Abacus::Universal(6)},            
         },
-        ExprCalc::Universal(0));
+        Abacus::Universal(0));
     
-    errorsNumber += CheckExpression(" 1.0", {}, ExprCalc::Universal(1.f));
-    errorsNumber += CheckExpression(" 1.0 ", {}, ExprCalc::Universal(1.f));
-    errorsNumber += CheckExpression("1.0 ", {}, ExprCalc::Universal(1.f));
-    errorsNumber += CheckExpression("1.0", {}, ExprCalc::Universal(1.f));
-    errorsNumber += CheckExpression("9.0", {},  ExprCalc::Universal(9.f));
-    errorsNumber += CheckExpression("-1.0", {},  ExprCalc::Universal(-1.f));
-    errorsNumber += CheckExpression("+1.0", {}, ExprCalc::Universal(1.f));
-    errorsNumber += CheckExpression("-.1", {},  ExprCalc::Universal(-0.1f));
-    errorsNumber += CheckExpression("+.1", {},  ExprCalc::Universal(0.1f));
-    errorsNumber += CheckExpression("-1", {},  ExprCalc::Universal(-1));
-    errorsNumber += CheckExpression("-1.0", {},  ExprCalc::Universal(-1.f));
-    errorsNumber += CheckExpression(" {  1 , 2 } ", {}, ExprCalc::Universal(1, 2));
-    errorsNumber += CheckExpression(" { 1,2 }", {}, ExprCalc::Universal(1, 2));
-    errorsNumber += CheckExpression("((1))", {},  ExprCalc::Universal(1));
-    errorsNumber += CheckExpression("((1 + -2 + -1*+2.0))", {},  ExprCalc::Universal(-3.0f));
-    errorsNumber += CheckExpression("1 + 1", {},  ExprCalc::Universal(2));
-    errorsNumber += CheckExpression("1 +2.0", {},  ExprCalc::Universal(3.0f));
-    errorsNumber += CheckExpression("+1*+2", {}, ExprCalc::Universal(2));
-    errorsNumber += CheckExpression("-1 + 1", {},  ExprCalc::Universal(0));
-    errorsNumber += CheckExpression("(((1 + 2) + 3) + 4)", {},  ExprCalc::Universal(10));
-    errorsNumber += CheckExpression("(1 + -2 + -1*+2.0 + 10 / (3 + 2))", {},  ExprCalc::Universal(-1.0f));
-    errorsNumber += CheckExpression("((+1 + -2 + -1*+2 + 10 / (3 + 2)) + (4/2 + 1))+12/3", {},  ExprCalc::Universal(6));
-    errorsNumber += CheckExpression("(1 + -2 + -1*+2.0)", {},  ExprCalc::Universal(-3.0f));
-    errorsNumber += CheckExpression("((1 + -2 + -1*+2.0))", {},  ExprCalc::Universal(-3.0f));
-    errorsNumber += CheckExpression("((+1 + -2 + -1*+2.0 + 10 / (3 + 2)) + (4/2 + 1))+12/3", {},  ExprCalc::Universal(6.0f));
-    errorsNumber += CheckExpression("1 + 2^(3+1)", {},  ExprCalc::Universal(17));
-    errorsNumber += CheckExpression("1 + 2^(3.0+1)", {},  ExprCalc::Universal(17.f));
-    errorsNumber += CheckExpression("1 + 2.0^(3+1)", {},  ExprCalc::Universal(17.f));
-    errorsNumber += CheckExpression("1 + 2.0^(3+1.0)", {},  ExprCalc::Universal(17.f));
+    errorsNumber += CheckExpression(" 1.0", {}, Abacus::Universal(1.f));
+    errorsNumber += CheckExpression(" 1.0 ", {}, Abacus::Universal(1.f));
+    errorsNumber += CheckExpression("1.0 ", {}, Abacus::Universal(1.f));
+    errorsNumber += CheckExpression("1.0", {}, Abacus::Universal(1.f));
+    errorsNumber += CheckExpression("9.0", {},  Abacus::Universal(9.f));
+    errorsNumber += CheckExpression("-1.0", {},  Abacus::Universal(-1.f));
+    errorsNumber += CheckExpression("+1.0", {}, Abacus::Universal(1.f));
+    errorsNumber += CheckExpression("-.1", {},  Abacus::Universal(-0.1f));
+    errorsNumber += CheckExpression("+.1", {},  Abacus::Universal(0.1f));
+    errorsNumber += CheckExpression("-1", {},  Abacus::Universal(-1));
+    errorsNumber += CheckExpression("-1.0", {},  Abacus::Universal(-1.f));
+    errorsNumber += CheckExpression(" {  1 , 2 } ", {}, Abacus::Universal(1, 2));
+    errorsNumber += CheckExpression(" { 1,2 }", {}, Abacus::Universal(1, 2));
+    errorsNumber += CheckExpression("((1))", {},  Abacus::Universal(1));
+    errorsNumber += CheckExpression("((1 + -2 + -1*+2.0))", {},  Abacus::Universal(-3.0f));
+    errorsNumber += CheckExpression("1 + 1", {},  Abacus::Universal(2));
+    errorsNumber += CheckExpression("1 +2.0", {},  Abacus::Universal(3.0f));
+    errorsNumber += CheckExpression("+1*+2", {}, Abacus::Universal(2));
+    errorsNumber += CheckExpression("-1 + 1", {},  Abacus::Universal(0));
+    errorsNumber += CheckExpression("(((1 + 2) + 3) + 4)", {},  Abacus::Universal(10));
+    errorsNumber += CheckExpression("(1 + -2 + -1*+2.0 + 10 / (3 + 2))", {},  Abacus::Universal(-1.0f));
+    errorsNumber += CheckExpression("((+1 + -2 + -1*+2 + 10 / (3 + 2)) + (4/2 + 1))+12/3", {},  Abacus::Universal(6));
+    errorsNumber += CheckExpression("(1 + -2 + -1*+2.0)", {},  Abacus::Universal(-3.0f));
+    errorsNumber += CheckExpression("((1 + -2 + -1*+2.0))", {},  Abacus::Universal(-3.0f));
+    errorsNumber += CheckExpression("((+1 + -2 + -1*+2.0 + 10 / (3 + 2)) + (4/2 + 1))+12/3", {},  Abacus::Universal(6.0f));
+    errorsNumber += CheckExpression("1 + 2^(3+1)", {},  Abacus::Universal(17));
+    errorsNumber += CheckExpression("1 + 2^(3.0+1)", {},  Abacus::Universal(17.f));
+    errorsNumber += CheckExpression("1 + 2.0^(3+1)", {},  Abacus::Universal(17.f));
+    errorsNumber += CheckExpression("1 + 2.0^(3+1.0)", {},  Abacus::Universal(17.f));
+    
+    errorsNumber += CheckStatement(
+        "var a = 5",
+        { },
+        Abacus::ExecResult { true, {},{{"a", Abacus::Universal(5)}} },
+        0.
+    );
     
     if (errorsNumber != 0)
     {

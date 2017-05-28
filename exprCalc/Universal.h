@@ -1,11 +1,12 @@
-# pragma once
+#pragma once
 
 #include <string>
 #include <vector>
 #include <utility>
 
-namespace ExprCalc
+namespace Abacus
 {
+    // TODO: optimize Universal (move semantic and minimize its size).
     struct Universal
     {
         enum class Types 
@@ -14,8 +15,7 @@ namespace ExprCalc
             INTEGER,
             REAL,
             INT_SEQUENCE,
-            REAL_SEQUENCE,
-            FUTURE
+            REAL_SEQUENCE
         };
         
         Types Type;
@@ -24,7 +24,6 @@ namespace ExprCalc
         {
             int Integer;
             double Real;
-            std::string Variable;
             std::vector<int> IntSequence;
             std::vector<double> RealSequence;
         };
@@ -45,6 +44,8 @@ namespace ExprCalc
         
         bool IsValid() const { return Type != Universal::Types::INVALID; };
         bool IsNumber() const { return Type == Universal::Types::INTEGER || Type == Universal::Types::REAL; };
+        
+        std::string ToString() const;
     };
     
     Universal Mul(const Universal& l, const Universal& r);
@@ -57,5 +58,7 @@ namespace ExprCalc
 
     Universal Pow(const Universal& l, const Universal& r);
 
-	bool operator==(const Universal& l, const Universal& r);
+    bool operator==(const Universal& l, const Universal& r);
+    
+    bool operator!=(const Universal& l, const Universal& r);
 }

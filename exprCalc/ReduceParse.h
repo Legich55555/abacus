@@ -1,13 +1,19 @@
-# pragma once
+#pragma once
 
-#include <tao/pegtl.hpp>
-#include "ExprCalc.h"
 #include "Universal.h"
 
-namespace ExprCalc
+#include <tao/pegtl.hpp>
+
+namespace Abacus
 {
     using namespace tao::TAOCPP_PEGTL_NAMESPACE;
     
+    namespace Expr
+    {
+        template< typename Input >
+        bool Parse(Input& input, const State& variables, Universal& result);
+    }
+
     namespace Reduce
     {
         struct ReduceBegin : seq<string< 'r', 'e', 'd', 'u', 'c', 'e' >, star<space>, one<'('> > { };
@@ -28,44 +34,38 @@ namespace ExprCalc
         };
         
         template< typename Input >
-        bool Parse(Input& input, const Variables& variables, Universal& result)
+        bool Parse(Input& input, const State& variables, Universal& result)
         {
             if (parse<ReduceBegin>(input) == false)
             {
                 return false;
             }
 
-            size_t parsed;
-            Universal firstValue = Calculate(
-                input.current(),
-                input.size(),
-                "Reduce first parameter",
-                parsed,
-                variables);
+            Universal firstValue;
+            if (!Expr::Parse(input, variables, firstValue))
+            {
+                throw parse_error("First reduce() parameter is not valid.", input);
+            }
             if (firstValue.Type != Universal::Types::INT_SEQUENCE &&
                 firstValue.Type != Universal::Types::REAL_SEQUENCE)
             {
                 throw parse_error("First reduce() parameter is not valid.", input);
             }
-            input.bump(parsed);
             
             if (parse< seq< pad<one<','>, space> > >(input) == false)
             {
                 throw parse_error("Failed to parse reduce()", input);
             }
 
-            Universal secondValue = Calculate(
-                input.current(),
-                input.size(),
-                "Reduce second parameter",
-                parsed,
-                variables);
-            if (secondValue.Type != Universal::Types::INTEGER &&
-                secondValue.Type != Universal::Types::REAL)
+            Universal secondValue;
+            if (!Expr::Parse(input, variables, secondValue))
             {
                 throw parse_error("Second reduce() parameter is not valid.", input);
             }
-            input.bump(parsed);
+            if (!secondValue.IsNumber())
+            {
+                throw parse_error("Second reduce() parameter is not valid.", input);
+            }
             
             if (parse< seq< pad<one<','>, space> > >(input) == false)
             {
@@ -78,47 +78,67 @@ namespace ExprCalc
                 throw parse_error("Invalid lambda syntax.", input);
             }
             
+            // Backup position for concurrent/multiple run.
+            const char* inputCurr = input.current();
+            size_t inputSize = input.size();
+            
             Universal intermediateValue = secondValue;
             
-            size_t lambdaExprSize;
             if (firstValue.Type == Universal::Types::INT_SEQUENCE)
             {
-                for (int i : firstValue.IntSequence)
+                for (size_t idx = 0; idx < firstValue.IntSequence.size(); ++idx)
                 {
-                    Variables lambdaParams = { 
+                    memory_input<> lambdaInput(inputCurr, inputSize, "reduce() lambda");
+                    
+                    auto& lambdaInputRef = idx != 0 ? lambdaInput : input;
+                    
+                    State lambdaParams = 
+                    { 
                         {lambdaParameters[0], intermediateValue},
-                        {lambdaParameters[1], Universal(i)}
+                        {lambdaParameters[1], Universal(firstValue.IntSequence[idx])}
                     };
                     
-                    Universal callResult = Calculate(input.current(), input.size(), "Reduce lambda", lambdaExprSize, lambdaParams);
-					if (!callResult.IsNumber())
-					{
-                        throw parse_error("Runtime error in lambda", input);
+                    Universal lambdaResult;
+                    if (!Expr::Parse(lambdaInputRef, lambdaParams, lambdaResult))
+                    {
+                        throw parse_error("Failed to calculate reduce() lambda.", input);
+                    }
+                    if (!secondValue.IsNumber())
+                    {
+                        throw parse_error("reduce() lambda returned unexpected result.", input);
                     }
                     
-                    intermediateValue = callResult;
+                    intermediateValue = lambdaResult;
                 }
             }
             else
             {
-                for (double f : firstValue.RealSequence)
+                for (size_t idx = 0; idx < firstValue.RealSequence.size(); ++idx)
                 {
-                    Variables lambdaParams = { 
+                    memory_input<> lambdaInput(inputCurr, inputSize, "reduce() lambda");
+                    
+                    auto& lambdaInputRef = idx != 0 ? lambdaInput : input;
+                    
+                    State lambdaParams = 
+                    { 
                         {lambdaParameters[0], intermediateValue},
-                        {lambdaParameters[1], Universal(f)}
+                        {lambdaParameters[1], Universal(firstValue.RealSequence[idx])}
                     };
                     
-                    Universal callResult = Calculate(input.current(), input.size(), "Reduce lambda", lambdaExprSize, lambdaParams);
-                    if (!callResult.IsNumber())
-                    {                    
-                        throw parse_error("Runtime error in lambda", input);
+                    Universal lambdaResult;
+                    if (!Expr::Parse(lambdaInputRef, lambdaParams, lambdaResult))
+                    {
+                        throw parse_error("Failed to calculate reduce() lambda.", input);
+                    }
+                    if (!secondValue.IsNumber())
+                    {
+                        throw parse_error("reduce() lambda returned unexpected result.", input);
                     }
                     
-                    intermediateValue = callResult;
+                    intermediateValue = lambdaResult;
                 }
+
             }
-            
-            input.bump(lambdaExprSize);
             
             if (parse< pad< one<')'>, space> >(input) == false)
             {

@@ -1,18 +1,23 @@
-# pragma once
+#pragma once
 
-#include "BracesParse.h"
-#include "ExprCalc.h"
 #include "Universal.h"
+
 #include <tao/pegtl.hpp>
 
-#include <type_traits>
 #include <future>
 #include <thread>
 #include <functional>
+#include <type_traits>
 
-namespace ExprCalc
+namespace Abacus
 {
     using namespace tao::TAOCPP_PEGTL_NAMESPACE;
+    
+    namespace Expr
+    {
+        template< typename Input >
+        bool Parse(Input& input, const State& variables, Universal& result);
+    }
 
     namespace Map
     {
@@ -68,9 +73,10 @@ namespace ExprCalc
             return OT();
         }
         
-        template<typename Input, typename IT, typename OT>
+        template<typename IT, typename OT>
         bool CalculateSubSequence(
-            Input& input,
+            const char* inputCurr,
+            size_t inputSize,
             const std::string& paramName,
             std::vector<IT>& inputSequence,
             const size_t beginIdx,
@@ -79,13 +85,15 @@ namespace ExprCalc
         {
             for (size_t idx = beginIdx; idx < endIdx; ++idx)
             {
-                Variables lambdaParams = { {paramName, Universal(inputSequence[idx])} };
+                State lambdaParams = { {paramName, Universal(inputSequence[idx])} };
 
-                Universal callResult = Calculate(input, "CalculateSubSequence", lambdaParams);
+                memory_input<> input(inputCurr, inputSize, "CalculateSubSequence");
                 
-                if (GetUniversalSequenceType<OT>() != callResult.Type)
-                {                    
-                    throw parse_error("Runtime error in map() lambda.", input);
+                Universal callResult;
+                if (!Expr::Parse(input, lambdaParams, callResult))
+                {
+                    // TODO: implement detailed error report.
+                    return false;
                 }
                 
                 const OT v = GetUniversalValue<OT>(callResult);
@@ -93,12 +101,13 @@ namespace ExprCalc
                 outputSequence[idx] = v;
             }
             
-            return false;
+            return true;
         }
 
-        template<typename Input, typename IT, typename OT>
+        template<typename IT, typename OT>
         bool CalculateSequence(
-            Input& input,
+            const char* inputCurr,
+            size_t inputSize,
             const std::string& paramName,
             std::vector<IT>& inputSequence,
             std::vector<OT>& outputSequence)
@@ -120,9 +129,9 @@ namespace ExprCalc
                 
                 std::launch jobType = jobBeginIdx != 1U ? 
                     std::launch::async : std::launch::deferred;
-                    
-                auto jobFunc = std::bind(CalculateSubSequence<Input, IT, OT>,
-                        std::ref(input), std::ref(paramName), std::ref(inputSequence), jobBeginIdx, jobEndIdx, std::ref(outputSequence));
+
+                auto jobFunc = std::bind(CalculateSubSequence<IT, OT>,
+                        inputCurr, inputSize, std::ref(paramName), std::ref(inputSequence), jobBeginIdx, jobEndIdx, std::ref(outputSequence));
                 
                 jobs.push_back(std::async(jobType, jobFunc));
             }
@@ -135,60 +144,57 @@ namespace ExprCalc
             }
 
             return totalResult;
-            
-//             return CalculateSubSequence(
-//                 input, 
-//                 paramName,
-//                 inputSequence,
-//                 0,
-//                 inputSequence.size(),
-//                 outputSequence);
         }
 
         template< typename Input >
-        bool Parse(Input& input, const Variables& variables, Universal& result)
+        bool Parse(Input& input, const State& variables, Universal& result)
         {
             if (parse<MapBegin>(input) == false)
             {
                 return false;
             }
 
-            size_t parsed;
-            Universal firstValue = Calculate(
-                input.current(),
-                input.size(),
-                "Map parameter",
-                parsed,
-                variables);
+            Universal firstValue;
+            if (!Expr::Parse(input, variables, firstValue))
+            {
+                throw parse_error("First map() parameter is not valid.", input);
+            }
             if (firstValue.Type != Universal::Types::INT_SEQUENCE ||
                 firstValue.IntSequence.empty())
             {
-                throw parse_error("First map parameter is not valid.", input);
+                // TODO: add support for real number sequences.
+                throw parse_error("First map() parameter is not valid.", input);
             }
-            
-            input.bump(parsed);
             
             std::string lambdaParameter;
             if (parse<LambdaBegin, IdentifierAction>(input, lambdaParameter) == false)
             {
                 throw parse_error("Invalid lambda syntax.", input);
             }
+
+            // Backup position for concurrent run.
+            const char* inputCurr = input.current();
+            size_t inputSize = input.size();
             
             // Calculate the first item of sequence
-            size_t lambdaExprSize;
-            auto seqIt = firstValue.IntSequence.cbegin();
-            Variables lambdaParams = { {lambdaParameter, Universal(*seqIt)} };
-            Universal callResult = Calculate(input.current(), input.size(), "Map lambda", lambdaExprSize, lambdaParams);
+            Universal callResult;
+            State lambdaParams = { { lambdaParameter, Universal(firstValue.IntSequence.front()) } };
+            if (!Expr::Parse(input, lambdaParams, callResult))
+            {
+                throw parse_error("Invalid lambda syntax.", input);
+            }
             if (!callResult.IsNumber())
             {                    
-                throw parse_error("Runtime error in map() lambda. Result is expected to be a number.", input);
+                throw parse_error("Runtime error in map() lambda. Result is not a number.", input);
             }  
             
+            bool calculateSequenceResult = false;
             if (Universal::Types::INTEGER == callResult.Type)
             {
                 std::vector<int> intResult(0);
                 
-                CalculateSequence(input, lambdaParameter, firstValue.IntSequence, intResult);
+                calculateSequenceResult = 
+                    CalculateSequence(inputCurr, inputSize, lambdaParameter, firstValue.IntSequence, intResult);
             
                 result = Universal(intResult);
             }
@@ -196,13 +202,17 @@ namespace ExprCalc
             {
                 std::vector<double> realResult(0);
                 
-                CalculateSequence(input, lambdaParameter, firstValue.IntSequence, realResult);
+                calculateSequenceResult = 
+                    CalculateSequence(inputCurr, inputSize, lambdaParameter, firstValue.IntSequence, realResult);
             
                 result = Universal(realResult);
             }
             
-            input.bump(lambdaExprSize);
-            
+            if (!calculateSequenceResult)
+            {
+                throw parse_error("Runtime error.", input);
+            }
+
             if (parse< pad< one<')'>, space> >(input) == false)
             {
                 throw parse_error("Invalid map() syntax - no closing round brace.", input);
