@@ -25,6 +25,7 @@ HEADERS += \
 FORMS += \
         mainwindow.ui
 
-LIBS += -L../exprCalc -lexprCalc
+unix: !osx: LIBS += -L../exprCalc -lexprCalc
+win32:!winrt: LIBS += -L../exprCalc/debug -lexprCalc
 
 INCLUDEPATH += $$PWD/..
