@@ -4,5 +4,8 @@ build/
 # Ignore KDevelop projects
 *.kdev4*
 
+# Ignore QtCreatot user specific files
+*.user
+
 # Ignore VS project settings
 *.vs

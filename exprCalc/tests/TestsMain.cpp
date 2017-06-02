@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "exprCalc/Abacus.h"
+#include "exprCalc/ExprCalc.h"
 
 /*
  * @brief Check expresssions

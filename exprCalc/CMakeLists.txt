@@ -1,7 +1,7 @@
 
 add_library(exprCalc STATIC
-    Abacus.h
-    Abacus.cpp
+    ExprCalc.h
+    ExprCalc.cpp
     Universal.h
     Universal.cpp
     StmtParse.h 
