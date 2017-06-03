@@ -79,11 +79,11 @@ void MainWindow::on_batchQueued(unsigned firstTaskIdx, unsigned tasksNumber)
     }
 }
 
-void MainWindow::on_taskDone(unsigned taskIdx, const QString& /*taskResult*/)
+void MainWindow::on_taskDone(unsigned taskIdx, bool success, const QString& statement, const QString& result)
 {
     qInfo("on_taskDone");
 
-    setTaskStatus(taskIdx, "Done");
+    setTaskStatus(taskIdx, result);
 }
 
 void MainWindow::on_taskCancelled(unsigned taskIdx)

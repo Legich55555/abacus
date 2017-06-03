@@ -23,7 +23,7 @@ private slots:
 
     void on_allDone();
     void on_batchQueued(unsigned firstTaskIdx, unsigned tasksNumber);
-    void on_taskDone(unsigned taskIdx, const QString& taskResult);
+    void on_taskDone(unsigned taskIdx, bool success, const QString& statement, const QString& result);
     void on_taskCancelled(unsigned taskIdx);
 
 private:

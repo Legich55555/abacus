@@ -145,7 +145,14 @@ namespace Abacus
             }
         };
 
-        struct Expression : seq< star<space>, list< Atomic, BinaryOp, space >, star<space> > { };
+        struct Expression : seq<
+                star<space>,
+                sor<
+                    list_must<Atomic, BinaryOp, space>,
+                    Atomic
+                >,
+                star<space>
+                > { };
         
         struct RoundBraces : seq< one<'('>, pad< Expression, space>, one<')'> > { };
         

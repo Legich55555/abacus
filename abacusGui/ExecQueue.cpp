@@ -10,6 +10,8 @@ struct ExecQueue::Task
     bool IsSuccessfull;
     unsigned Idx;
     QString Statement;
+    QString Output;
+    Abacus::State State;
 };
 
 ExecQueue::ExecQueue()
@@ -23,21 +25,6 @@ ExecQueue::~ExecQueue()
     m_destroying = true;
     m_execThread.join();
 }
-
-//void ExecQueue::AddTask(int taskIdx, const QString &taskStatement)
-//{
-//    {
-//        std::lock_guard<std::mutex> lock(m_mtx);
-
-//        CancelTasksImpl(taskIdx);
-
-//        m_waitingTasks.push_back(TaskPtr(new Task { false, false, taskIdx, taskStatement}));
-//    }
-
-//    m_wakeup.notify_one();
-
-//    emit TaskQueued(taskIdx);
-//}
 
 void ExecQueue::AddBatch(const std::vector<QString>& batch, unsigned firstTaskIdx)
 {
@@ -86,16 +73,32 @@ void ExecQueue::ExecLoop()
 
         if (currTask != nullptr)
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(500U));
+            std::this_thread::sleep_for(std::chrono::milliseconds(100U));
+
+            Abacus::State state = m_doneTasks.empty() ?
+                        Abacus::State() : m_doneTasks.back().get()->State;
+
+            Task& task = *currTask.get();
+
+            Abacus::ExecResult taskResult = Abacus::Execute(task.Statement.toStdString(), state);
+            task.IsDone = true;
+            task.IsSuccessfull = taskResult.Success;
+            task.State.insert(state.cbegin(), state.cend());
+            task.State.insert(taskResult.Variables.cbegin(), taskResult.Variables.cend());
+
+            task.Output = task.IsSuccessfull ? "Ok" : "Error";
+            for (const auto& s : taskResult.Output)
+            {
+                task.Output.append(s.c_str());
+                task.Output.append("; ");
+            }
 
             {
                 std::lock_guard<std::mutex> lock(m_mtx);
 
-                Task* task = currTask.get();
-
                 m_doneTasks.push_back(std::move(currTask));
 
-                emit TaskDone(task->Idx, task->Statement);
+                emit TaskDone(task.Idx, task.IsSuccessfull, task.Statement, task.Output);
 
                 if (m_doneTasks.empty())
                 {

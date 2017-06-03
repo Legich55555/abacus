@@ -44,6 +44,10 @@ namespace Abacus
             {
                 execResult.Success = true;
             }
+            else
+            {
+                execResult.Output.push_back("Syntax error");
+            }
         }
         catch (const parse_error& parseError)
         {

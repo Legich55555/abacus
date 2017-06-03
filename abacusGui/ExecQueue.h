@@ -31,7 +31,7 @@ public:
 signals:
     void AllDone();
     void BatchQueued(unsigned firstTaskIdx, unsigned tasksNumber);
-    void TaskDone(unsigned taskIdx, const QString& taskResult);
+    void TaskDone(unsigned taskIdx, bool success, const QString& statement, const QString& result);
     void TaskCancelled(unsigned taskIdx);
 
 private:
