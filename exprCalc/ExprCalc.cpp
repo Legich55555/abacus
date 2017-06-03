@@ -2,7 +2,6 @@
 
 #include "ExprParse.h"
 #include "StmtParse.h"
-#include "BinaryStack.h"
 
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/analyze.hpp> // Include the analyze function that checks a grammar for possible infinite cycles.
@@ -10,6 +9,8 @@
 namespace Abacus
 {
     using namespace tao::TAOCPP_PEGTL_NAMESPACE;
+
+    unsigned WORK_THREADS_NUM = 4U;
     
     Universal Calculate(const std::string& expression, const State& variables)
     {
@@ -18,7 +19,7 @@ namespace Abacus
         try
         {
             memory_input<> input(expression.data(), expression.size(), "Calculate");
-            if (!Expr::Parse(input, variables, result))
+            if (!Expr::Parse(input, WORK_THREADS_NUM, variables, result))
             {
                 std::cout << "Failed to parse expression." << std::endl;
             }
@@ -35,12 +36,18 @@ namespace Abacus
 
     ExecResult Execute(const std::string& statement, const State& variables)
     {
-        ExecResult execResult = {false};
-        
+        ExecResult execResult = { false, {}, {}};
+
         try
         {
             memory_input<> input(statement.data(), statement.size(), "Execute");
-            if (Stmt::Parse(input, execResult, variables))
+
+            // If it is an empty statement then it is ignored without rising any error.
+            if (parse<star<space>>(input) && input.size() == 0)
+            {
+                execResult.Success = true;
+            }
+            else if (Stmt::Parse(input, WORK_THREADS_NUM, variables, execResult.Output, execResult.Variables))
             {
                 execResult.Success = true;
             }
@@ -56,6 +63,5 @@ namespace Abacus
         }
         
         return execResult; 
-    }
-    
+    }    
 }

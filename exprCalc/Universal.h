@@ -42,8 +42,8 @@ namespace Abacus
         
         ~Universal();
         
-        bool IsValid() const { return Type != Universal::Types::INVALID; };
-        bool IsNumber() const { return Type == Universal::Types::INTEGER || Type == Universal::Types::REAL; };
+        bool IsValid() const { return Type != Universal::Types::INVALID; }
+        bool IsNumber() const { return Type == Universal::Types::INTEGER || Type == Universal::Types::REAL; }
         
         std::string ToString() const;
     };

@@ -19,7 +19,7 @@ namespace Abacus
         using namespace tao::TAOCPP_PEGTL_NAMESPACE;
         
         template<typename Input>
-        bool Parse(Input& input, const State& variables, Universal& result);
+        bool Parse(Input& input, unsigned threads, const State& variables, Universal& result);
         
         struct Real : seq<
             opt< one<'+', '-'> >,
@@ -61,7 +61,7 @@ namespace Abacus
                 template< typename... > class Action,
                 template< typename... > class Control,
                 typename Input >
-            static bool match(Input& input, BinaryStacks& stacks, const State&)
+            static bool match(Input& input, unsigned, BinaryStacks& stacks, const State&)
             {
                 const auto opIt = BIN_OPERATORS.find(input.peek_char(0));
                 if (opIt != BIN_OPERATORS.cend())
@@ -86,10 +86,10 @@ namespace Abacus
                 template< typename... > class Action,
                 template< typename... > class Control,
                 typename Input>
-            static bool match(Input& input, BinaryStacks& stacks, const State& variables)
+            static bool match(Input& input, unsigned threads, BinaryStacks& stacks, const State& variables)
             {
                 Universal result;
-                if (Map::Parse(input, variables, result))
+                if (Map::Parse(input, threads, variables, result))
                 {
                     stacks.PushUniversal(result);
                     return true;
@@ -109,10 +109,10 @@ namespace Abacus
                 template< typename... > class Action,
                 template< typename... > class Control,
                 typename Input>
-            static bool match(Input& input, BinaryStacks& stacks, const State& variables)
+            static bool match(Input& input, unsigned threads, BinaryStacks& stacks, const State& variables)
             {
                 Universal result;
-                if (Reduce::Parse(input, variables, result))
+                if (Reduce::Parse(input, threads, variables, result))
                 {
                     stacks.PushUniversal(result);
                     return true;
@@ -132,10 +132,10 @@ namespace Abacus
                 template< typename... > class Action,
                 template< typename... > class Control,
                 typename Input>
-            static bool match(Input& input, BinaryStacks& stacks, const State& variables)
+            static bool match(Input& input, unsigned threads, BinaryStacks& stacks, const State& variables)
             {
                 Universal result;
-                if (Sequence::Parse(input, variables, result))
+                if (Sequence::Parse(input, threads, variables, result))
                 {
                     stacks.PushUniversal(result);
                     return true;
@@ -163,7 +163,7 @@ namespace Abacus
         struct Action<Integer>
         {
             template< typename Input >
-            static void apply(const Input& in, BinaryStacks& stacks, const State&)
+            static void apply(const Input& in, unsigned, BinaryStacks& stacks, const State&)
             {
                 std::string strVal = in.string();
                 int val = std::stoi(strVal);
@@ -175,7 +175,7 @@ namespace Abacus
         struct Action<Real>
         {
             template< typename Input >
-            static void apply(const Input& in, BinaryStacks& stacks, const State&)
+            static void apply(const Input& in, unsigned, BinaryStacks& stacks, const State&)
             {
                 std::string strVal = in.string();
                 double val = std::stof(strVal);
@@ -187,7 +187,7 @@ namespace Abacus
         struct Action<Variable>
         {
             template< typename Input >
-            static void apply(const Input& in, BinaryStacks& stacks, const State& variables)
+            static void apply(const Input& in, unsigned, BinaryStacks& stacks, const State& variables)
             {
                 std::string strVal = in.string();
                 const auto it = variables.find(strVal);
@@ -204,7 +204,7 @@ namespace Abacus
         template<>
         struct Action< one<'('> >
         {
-            static void apply0(BinaryStacks& stacks, const State&)
+            static void apply0(unsigned, BinaryStacks& stacks, const State&)
             {
                 stacks.Open();
             }
@@ -213,18 +213,18 @@ namespace Abacus
         template<>
         struct Action< one<')'> >
         {
-            static void apply0(BinaryStacks& stacks, const State&)
+            static void apply0(unsigned, BinaryStacks& stacks, const State&)
             {
                 stacks.Close();
             }
         };
         
         template<typename Input>
-        bool Parse(Input& input, const State& variables, Universal& result)
+        bool Parse(Input& input, unsigned threads, const State& variables, Universal& result)
         {
             BinaryStacks stacks;
             
-            if (parse<Expression, Action>(input, stacks, variables))
+            if (parse<Expression, Action>(input, threads, stacks, variables))
             {
                 result = stacks.Calculate();
                 

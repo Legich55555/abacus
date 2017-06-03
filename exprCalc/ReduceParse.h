@@ -11,7 +11,7 @@ namespace Abacus
     namespace Expr
     {
         template< typename Input >
-        bool Parse(Input& input, const State& variables, Universal& result);
+        bool Parse(Input& input, unsigned threads, const State& variables, Universal& result);
     }
 
     namespace Reduce
@@ -34,7 +34,7 @@ namespace Abacus
         };
         
         template< typename Input >
-        bool Parse(Input& input, const State& variables, Universal& result)
+        bool Parse(Input& input, unsigned threads, const State& variables, Universal& result)
         {
             if (parse<ReduceBegin>(input) == false)
             {
@@ -42,7 +42,7 @@ namespace Abacus
             }
 
             Universal firstValue;
-            if (!Expr::Parse(input, variables, firstValue))
+            if (!Expr::Parse(input, threads, variables, firstValue))
             {
                 throw parse_error("First reduce() parameter is not valid.", input);
             }
@@ -58,7 +58,7 @@ namespace Abacus
             }
 
             Universal secondValue;
-            if (!Expr::Parse(input, variables, secondValue))
+            if (!Expr::Parse(input, threads, variables, secondValue))
             {
                 throw parse_error("Second reduce() parameter is not valid.", input);
             }
@@ -99,7 +99,7 @@ namespace Abacus
                     };
                     
                     Universal lambdaResult;
-                    if (!Expr::Parse(lambdaInputRef, lambdaParams, lambdaResult))
+                    if (!Expr::Parse(lambdaInputRef, threads, lambdaParams, lambdaResult))
                     {
                         throw parse_error("Failed to calculate reduce() lambda.", input);
                     }
@@ -126,7 +126,7 @@ namespace Abacus
                     };
                     
                     Universal lambdaResult;
-                    if (!Expr::Parse(lambdaInputRef, lambdaParams, lambdaResult))
+                    if (!Expr::Parse(lambdaInputRef, threads, lambdaParams, lambdaResult))
                     {
                         throw parse_error("Failed to calculate reduce() lambda.", input);
                     }

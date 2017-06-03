@@ -21,7 +21,6 @@ public:
     ExecQueue();
     ~ExecQueue();
 
-    //void AddTask(int taskIdx, const QString& taskStatement);
     void AddBatch(const std::vector<QString>& batch, unsigned firstTaskIdx);
     void CancelTasks(unsigned fromTaskIdx);
 

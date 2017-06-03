@@ -6,7 +6,6 @@
 
 struct ExecQueue::Task
 {
-    bool IsDone;
     bool IsSuccessfull;
     unsigned Idx;
     QString Statement;
@@ -35,7 +34,7 @@ void ExecQueue::AddBatch(const std::vector<QString>& batch, unsigned firstTaskId
 
         for (unsigned i = 0; i < batch.size(); ++i)
         {
-            m_waitingTasks.push_back(TaskPtr(new Task { false, false, i + firstTaskIdx, batch[i]}));
+            m_waitingTasks.push_back(TaskPtr(new Task { false, i + firstTaskIdx, batch[i], {}, {}}));
         }
 
     }
@@ -81,16 +80,35 @@ void ExecQueue::ExecLoop()
             Task& task = *currTask.get();
 
             Abacus::ExecResult taskResult = Abacus::Execute(task.Statement.toStdString(), state);
-            task.IsDone = true;
             task.IsSuccessfull = taskResult.Success;
+            task.Output = task.IsSuccessfull ? "Ok. " : "Error. ";
+
+            // Merge state variables
             task.State.insert(state.cbegin(), state.cend());
             task.State.insert(taskResult.Variables.cbegin(), taskResult.Variables.cend());
 
-            task.Output = task.IsSuccessfull ? "Ok" : "Error";
-            for (const auto& s : taskResult.Output)
+            if (!taskResult.Output.empty())
             {
-                task.Output.append(s.c_str());
-                task.Output.append("; ");
+                task.Output.append("Out: ");
+                for (const auto& s : taskResult.Output)
+                {
+                    task.Output.append(s.c_str());
+                    task.Output.append(", ");
+                }
+            }
+
+            if (!task.State.empty())
+            {
+                task.Output.append("Vars: ");
+                for (const auto& v : task.State)
+                {
+                    QString varName(v.first.c_str());
+                    QString varValue(v.second.ToString().c_str());
+
+                    task.Output.append(QString("%1: %2, ")
+                                       .arg(varName)
+                                       .arg(varValue));
+                }
             }
 
             {

@@ -8,6 +8,8 @@ SOURCES += ExprCalc.cpp \
 HEADERS += ExprCalc.h \
     Universal.h \
     StmtParse.h \
+    ExprParse.h \
+    BinaryStack.h \
     MapParse.h \
     ReduceParse.h \
     SequenceParse.h

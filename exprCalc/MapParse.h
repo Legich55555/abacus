@@ -16,7 +16,7 @@ namespace Abacus
     namespace Expr
     {
         template< typename Input >
-        bool Parse(Input& input, const State& variables, Universal& result);
+        bool Parse(Input& input, unsigned threads, const State& variables, Universal& result);
     }
 
     namespace Map
@@ -90,7 +90,7 @@ namespace Abacus
                 memory_input<> input(inputCurr, inputSize, "CalculateSubSequence");
                 
                 Universal callResult;
-                if (!Expr::Parse(input, lambdaParams, callResult))
+                if (!Expr::Parse(input, 1U, lambdaParams, callResult))
                 {
                     // TODO: implement detailed error report.
                     return false;
@@ -108,19 +108,19 @@ namespace Abacus
         bool CalculateSequence(
             const char* inputCurr,
             size_t inputSize,
+            unsigned threads,
             const std::string& paramName,
             std::vector<IT>& inputSequence,
             std::vector<OT>& outputSequence)
         {
             outputSequence.resize(inputSequence.size());
             
-            const size_t MAX_JOBS_NUM = 4U;
             const size_t MIN_JOB_SIZE = 1000U;
             
             std::vector<std::future<bool>> jobs;
-            jobs.reserve(MAX_JOBS_NUM);
+            jobs.reserve(threads);
             
-            size_t batchSize = inputSequence.size() / MAX_JOBS_NUM + 1U;
+            size_t batchSize = inputSequence.size() / threads + 1U;
             batchSize = batchSize > MIN_JOB_SIZE ? batchSize : inputSequence.size();
             
             for (size_t jobBeginIdx = 0; jobBeginIdx < inputSequence.size(); jobBeginIdx += batchSize)
@@ -147,7 +147,7 @@ namespace Abacus
         }
 
         template< typename Input >
-        bool Parse(Input& input, const State& variables, Universal& result)
+        bool Parse(Input& input, unsigned threads, const State& variables, Universal& result)
         {
             if (parse<MapBegin>(input) == false)
             {
@@ -155,7 +155,7 @@ namespace Abacus
             }
 
             Universal firstValue;
-            if (!Expr::Parse(input, variables, firstValue))
+            if (!Expr::Parse(input, threads, variables, firstValue))
             {
                 throw parse_error("First map() parameter is not valid.", input);
             }
@@ -179,7 +179,7 @@ namespace Abacus
             // Calculate the first item of sequence
             Universal callResult;
             State lambdaParams = { { lambdaParameter, Universal(firstValue.IntSequence.front()) } };
-            if (!Expr::Parse(input, lambdaParams, callResult))
+            if (!Expr::Parse(input, threads, lambdaParams, callResult))
             {
                 throw parse_error("Invalid lambda syntax.", input);
             }
@@ -194,7 +194,7 @@ namespace Abacus
                 std::vector<int> intResult(0);
                 
                 calculateSequenceResult = 
-                    CalculateSequence(inputCurr, inputSize, lambdaParameter, firstValue.IntSequence, intResult);
+                    CalculateSequence(inputCurr, inputSize, threads, lambdaParameter, firstValue.IntSequence, intResult);
             
                 result = Universal(intResult);
             }
@@ -203,7 +203,7 @@ namespace Abacus
                 std::vector<double> realResult(0);
                 
                 calculateSequenceResult = 
-                    CalculateSequence(inputCurr, inputSize, lambdaParameter, firstValue.IntSequence, realResult);
+                    CalculateSequence(inputCurr, inputSize, threads, lambdaParameter, firstValue.IntSequence, realResult);
             
                 result = Universal(realResult);
             }

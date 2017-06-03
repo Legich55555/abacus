@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cassert>
+#include <sstream>
 
 namespace Abacus
 {
@@ -93,7 +94,23 @@ std::string Universal::ToString() const
     {
         return std::to_string(Real);
     }
-    
+    else if (Type == Types::INT_SEQUENCE)
+    {
+        std::stringstream stream;
+        stream << "{" << IntSequence.front() << " ... " << IntSequence.back() << "}";
+        return stream.str();
+    }
+    else if (Type == Types::REAL_SEQUENCE)
+    {
+        std::stringstream stream;
+        stream << "{" << RealSequence.front() << " ... " << RealSequence.back() << "}";
+        return stream.str();
+    }
+    else if (Type == Types::INVALID)
+    {
+        return std::string("Invalid");
+    }
+
     return "Not implemented";
 }
 
