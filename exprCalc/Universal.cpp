@@ -6,7 +6,6 @@
 
 namespace Abacus
 {
-// TODO: improve error reporting
 
 Universal::Universal(const Universal& other)
     : Type(Types::INVALID)
@@ -202,16 +201,14 @@ Universal Div(const Universal& l, const Universal& r)
 {
     if (r.Type == Universal::Types::INTEGER)
     {
-        throw std::runtime_error("Runtime error: division by zero");
-
         if (l.Type == Universal::Types::INTEGER)
         {
-            if (l.Integer % r.Integer != 0)
+            if (r.Integer != 0 && l.Integer % r.Integer == 0)
             {
                 return Universal(l.Integer / r.Integer);
             }
 
-            return Universal(double(l.Integer) / r.Integer);
+            return Universal(l.Integer / double(r.Integer));
         }
         else if (l.Type == Universal::Types::REAL)
         {
@@ -312,5 +309,5 @@ bool operator!=(const Universal& l, const Universal& r)
 {
     return !(l == r);
 }
-    
+
 }

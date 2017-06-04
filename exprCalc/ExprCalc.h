@@ -66,20 +66,24 @@ namespace Abacus
      * 
      * @param expression String with expression to be calculated.
      * @param variables Variables which are used in the expression.
-     * 
-     * @note Errors are printed to std::cout.
-     * 
+     * @param isTerminating Function which should be used to check if calculation termination was requested.
+     *
      * @return Result of calculation in form of Universal.
      */
-    Universal Calculate(const std::string& expression, const State& variables, IsTerminating isTerminating = nullptr);
+    Universal Calculate(const std::string& expression,
+                        const State& variables,
+                        IsTerminating isTerminating);
     
     /**
      * @brief Execute statement 
      * 
      * @param statement String with statement to be executed.
      * @param variables Variables which are used in the statement.
+     * @param isTerminating Function which should be used to check if calculation termination was requested.
      * 
-     * @return Result of calculation in form of Universal.
+     * @return Result of calculation in form of ExecResult.
      */
-    ExecResult Execute(const std::string& statement, const State& variables, IsTerminating isTerminating = nullptr);
+    ExecResult Execute(const std::string& statement,
+                       const State& variables,
+                       IsTerminating isTerminating);
 }

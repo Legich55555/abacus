@@ -15,6 +15,7 @@ namespace Abacus
     
     namespace Expr
     {
+        // Forward declaration for Expr::Parse()
         template< typename Input >
         bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, Universal& result);
     }
@@ -72,9 +73,11 @@ namespace Abacus
 
             return OT();
         }
-        
+
+        typedef std::pair<bool, std::string> JobResult;
+
         template<typename IT, typename OT>
-        bool CalculateSubSequence(
+        JobResult CalculateSubSequence(
             const char* inputCurr,
             size_t inputSize,
             IsTerminating isTerminating,
@@ -88,9 +91,11 @@ namespace Abacus
 
             for (size_t idx = beginIdx; idx < endIdx; ++idx)
             {
-                if (idx % TERMINATE_CHECK_PERIOD == 0 && isTerminating())
+                if (isTerminating != nullptr &&
+                    idx % TERMINATE_CHECK_PERIOD == 0 &&
+                    isTerminating())
                 {
-                    return false;
+                    return std::make_pair(false, std::string("Terminated."));
                 }
 
                 State lambdaParams = { {paramName, Universal(inputSequence[idx])} };
@@ -102,17 +107,12 @@ namespace Abacus
                 {
                     if (!Expr::Parse(input, isTerminating, 1U, lambdaParams, callResult))
                     {
-                        // TODO: implement detailed error report.
-                        return false;
+                        return std::make_pair(false, std::string("Runtime error."));
                     }
-                }
-                catch (const parse_error& err)
-                {
-                    return false;
                 }
                 catch (const std::runtime_error& err)
                 {
-                    return false;
+                    return std::make_pair(false, std::string(err.what()));
                 }
                 
                 const OT v = GetUniversalValue<OT>(callResult);
@@ -120,7 +120,7 @@ namespace Abacus
                 outputSequence[idx] = v;
             }
             
-            return true;
+            return std::make_pair(true, std::string());
         }
 
         template<typename IT, typename OT>
@@ -137,7 +137,7 @@ namespace Abacus
             
             const size_t MIN_JOB_SIZE = 1000U;
             
-            std::vector<std::future<bool>> jobs;
+            std::vector<std::future<JobResult>> jobs;
             jobs.reserve(threads);
             
             size_t batchSize = inputSequence.size() / threads + 1U;
@@ -159,8 +159,8 @@ namespace Abacus
             bool totalResult = true;
             for (auto& job : jobs)
             {
-                bool jobResult = job.get();
-                totalResult = totalResult && jobResult; 
+                JobResult jobResult = job.get();
+                totalResult = totalResult && jobResult.first;
             }
 
             return totalResult;

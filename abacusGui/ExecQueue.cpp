@@ -9,6 +9,7 @@ struct ExecQueue::Task
     bool IsSuccessfull;
     unsigned Idx;
     QString Statement;
+    QString Preview;
     QString Output;
     Abacus::State State;
 };
@@ -81,7 +82,7 @@ void ExecQueue::ExecLoop()
 
             Abacus::ExecResult taskResult = Abacus::Execute(task.Statement.toStdString(), state, isTerminating);
             task.IsSuccessfull = taskResult.Success;
-            task.Output = task.IsSuccessfull ? "Ok. " : "Error. ";
+            task.Preview = task.IsSuccessfull ? "Ok. " : "Error. ";
 
             // Merge state variables
             task.State.insert(state.cbegin(), state.cend());
@@ -89,23 +90,24 @@ void ExecQueue::ExecLoop()
 
             if (!taskResult.Output.empty())
             {
-                task.Output.append("Out: ");
+                task.Preview.append("Out: ");
                 for (const auto& s : taskResult.Output)
                 {
+                    task.Preview.append(s.c_str());
+                    task.Preview.append(", ");
                     task.Output.append(s.c_str());
-                    task.Output.append(", ");
                 }
             }
 
             if (!task.State.empty())
             {
-                task.Output.append("Vars: ");
+                task.Preview.append("Vars: ");
                 for (const auto& v : task.State)
                 {
                     QString varName(v.first.c_str());
                     QString varValue(v.second.ToString().c_str());
 
-                    task.Output.append(QString("%1: %2, ")
+                    task.Preview.append(QString("%1: %2, ")
                                        .arg(varName)
                                        .arg(varValue));
                 }
@@ -116,11 +118,17 @@ void ExecQueue::ExecLoop()
 
                 m_doneTasks.push_back(std::move(currTask));
 
-                emit TaskDone(task.Idx, task.IsSuccessfull, task.Statement, task.Output);
+                emit TaskDone(task.Idx, task.IsSuccessfull, task.Statement, task.Preview);
 
-                if (m_doneTasks.empty())
+                if (m_waitingTasks.empty())
                 {
-                    emit AllDone();
+                    QString allOutput;
+                    for (const auto& task : m_doneTasks)
+                    {
+                        allOutput.append(task.get()->Output);
+                    }
+
+                    emit AllDone(allOutput);
                 }
             }
         }

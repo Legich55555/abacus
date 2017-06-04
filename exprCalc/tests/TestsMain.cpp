@@ -13,7 +13,7 @@ unsigned CheckExpression(
     const Abacus::State& variables,
     const Abacus::Universal& expectedValue)
 {
-    const Abacus::Universal result = Abacus::Calculate(expression, variables);
+    const Abacus::Universal result = Abacus::Calculate(expression, variables, nullptr);
     
     if (result == expectedValue)
     {
@@ -33,7 +33,7 @@ unsigned CheckExpression(
     const double& expectedValue,
     const double& maxDelta)
 {
-    const Abacus::Universal result = Abacus::Calculate(expression, variables);
+    const Abacus::Universal result = Abacus::Calculate(expression, variables, nullptr);
     if (result.Type != Abacus::Universal::Types::REAL)
     {
         std::cout << "FAILED test for \"" << expression << "\"" << std::endl;
@@ -58,7 +58,7 @@ unsigned CheckInvalidExpression(
     const std::string& expression, 
     const Abacus::State& variables)
 {
-    if (!Abacus::Calculate(expression, variables).IsValid())
+    if (!Abacus::Calculate(expression, variables, nullptr).IsValid())
     {
         std::cout << "PASSED test for " << expression << std::endl;
         return 0U;
@@ -73,10 +73,9 @@ unsigned CheckInvalidExpression(
 unsigned CheckStatement(
     const std::string& statement, 
     const Abacus::State& variables,
-    const Abacus::ExecResult& expectedResult,
-    const double& maxDelta)
+    const Abacus::ExecResult& expectedResult)
 {
-    Abacus::ExecResult result = Abacus::Execute(statement, variables);
+    Abacus::ExecResult result = Abacus::Execute(statement, variables, nullptr);
     if (!result.Success)
     {
         std::cout << "FAILED test for \"" << statement << "\"" << std::endl;
@@ -134,7 +133,7 @@ unsigned CheckProgramPi()
 
     for (const auto& statement : program)
     {
-        Abacus::ExecResult result = Abacus::Execute(statement, variables);
+        Abacus::ExecResult result = Abacus::Execute(statement, variables, nullptr);
         if (!result.Success)
         {
             std::cout << "FAILED test for program" << std::endl;
@@ -160,22 +159,19 @@ int main()
     errorsNumber += CheckStatement(
         "var a = 5",
         { },
-        Abacus::ExecResult { true, {},{{"a", Abacus::Universal(5)}} },
-        0.
+        Abacus::ExecResult { true, {}, {{"a", Abacus::Universal(5)}} }
     );
     
     errorsNumber += CheckStatement(
         "print \"pi = \"",
         { },
-        Abacus::ExecResult { true, {"pi = "},{} },
-        0.
+        Abacus::ExecResult { true, {"pi = "}, {} }
     );
     
     errorsNumber += CheckStatement(
         "out 2 + 2",
         { },
-        Abacus::ExecResult { true, {"4"},{} },
-        0.
+        Abacus::ExecResult { true, {"4"}, {} }
     );
     
     errorsNumber += CheckExpression(
@@ -259,7 +255,7 @@ int main()
     errorsNumber += CheckExpression("((+1 + -2 + -1*+2 + 10 / (3 + 2)) + (4/2 + 1))+12/3", {},  Abacus::Universal(6));
     errorsNumber += CheckExpression("(1 + -2 + -1*+2.0)", {},  Abacus::Universal(-3.0f));
     errorsNumber += CheckExpression("((1 + -2 + -1*+2.0))", {},  Abacus::Universal(-3.0f));
-    errorsNumber += CheckExpression("((+1 + -2 + -1*+2.0 + 10 / (3 + 2)) + (4/2 + 1))+12/3", {},  Abacus::Universal(6.0f));
+    errorsNumber += CheckExpression("((+1 + -2 + -1*+2.0 + 10 / (3 + 2)) + (4/2 + 1))+12/3", {},  Abacus::Universal(6.0));
     errorsNumber += CheckExpression("1 + 2^(3+1)", {},  Abacus::Universal(17));
     errorsNumber += CheckExpression("1 + 2^(3.0+1)", {},  Abacus::Universal(17.f));
     errorsNumber += CheckExpression("1 + 2.0^(3+1)", {},  Abacus::Universal(17.f));
@@ -268,8 +264,7 @@ int main()
     errorsNumber += CheckStatement(
         "var a = 5",
         { },
-        Abacus::ExecResult { true, {},{{"a", Abacus::Universal(5)}} },
-        0.
+        Abacus::ExecResult { true, {}, {{"a", Abacus::Universal(5)}} }
     );
     
     if (errorsNumber != 0)

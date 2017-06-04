@@ -3,6 +3,7 @@
 
 #include <QTextBlock>
 #include <QTextCursor>
+#include <QFileDialog>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -50,7 +51,6 @@ void MainWindow::on_sourceEditor_textChanged()
         {
             QString blockText = block.text();
             statements.push_back(blockText);
-            //m_execQueue.AddTask(i, blockText);
         }
         else
         {
@@ -60,13 +60,16 @@ void MainWindow::on_sourceEditor_textChanged()
     }
 
     m_execQueue.AddBatch(statements, fromTaskIdx);
-
     m_lastChangedBlockIdx = blockCount - 1;
+
+    ui->outputViewer->clear();
 }
 
-void MainWindow::on_allDone()
+void MainWindow::on_allDone(const QString& output)
 {
     qInfo("on_allDone");
+
+    ui->outputViewer->setPlainText(output);
 }
 
 void MainWindow::on_batchQueued(unsigned firstTaskIdx, unsigned tasksNumber)
@@ -79,7 +82,7 @@ void MainWindow::on_batchQueued(unsigned firstTaskIdx, unsigned tasksNumber)
     }
 }
 
-void MainWindow::on_taskDone(unsigned taskIdx, bool success, const QString& statement, const QString& result)
+void MainWindow::on_taskDone(unsigned taskIdx, bool /*success*/, const QString& /*statement*/, const QString& result)
 {
     qInfo("on_taskDone");
 
@@ -136,4 +139,52 @@ void MainWindow::setTaskStatus(unsigned taskIdx, const QString taskResult)
     }
 
     cursor.insertText(taskResult);
+}
+
+void MainWindow::on_actionOpen_triggered()
+{
+    QString filename = QFileDialog::getOpenFileName(this, "Open file", "", "Abacus files (*.abacus)");
+    if (filename.length() == 0)
+    {
+        return;
+    }
+
+    QFile f(filename);
+
+    if (f.open(QIODevice::ReadOnly))
+    {
+        QByteArray data = f.readAll();
+        f.close();
+
+        QString content = QString::fromUtf8(data.constData(), data.size());
+
+        ui->sourceEditor->document()->setPlainText(content);
+    }
+    else
+    {
+        // TODO: show error message.
+    }
+}
+
+void MainWindow::on_actionSave_triggered()
+{
+    QString filename = QFileDialog::getSaveFileName(this, "Save file", "", "Abacus files (*.abacus)");
+    if (filename.length() == 0)
+    {
+        return;
+    }
+
+    QFile f(filename);
+
+    if (f.open(QIODevice::WriteOnly))
+    {
+        QString content = ui->sourceEditor->document()->toPlainText();
+
+        f.write(content.toUtf8());
+        f.close();
+    }
+    else
+    {
+        // TODO: show error message.
+    }
 }

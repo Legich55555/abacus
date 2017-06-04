@@ -10,6 +10,7 @@ namespace Abacus
     
     namespace Expr
     {
+        // Forward declaration for Expr::Parse()
         template< typename Input >
         bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, Universal& result);
     }

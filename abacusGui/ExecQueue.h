@@ -28,7 +28,7 @@ public:
     ExecQueue& operator=(ExecQueue&) = delete;
 
 signals:
-    void AllDone();
+    void AllDone(const QString& output);
     void BatchQueued(unsigned firstTaskIdx, unsigned tasksNumber);
     void TaskDone(unsigned taskIdx, bool success, const QString& statement, const QString& result);
     void TaskCancelled(unsigned taskIdx);
