@@ -42,7 +42,7 @@ void ExecQueue::AddBatch(const std::vector<QString>& batch, unsigned firstTaskId
 
     m_wakeup.notify_one();
 
-    emit BatchQueued(firstTaskIdx, batch.size());
+    emit BatchQueued(firstTaskIdx, static_cast<unsigned>(batch.size()));
 }
 
 void ExecQueue::CancelTasks(unsigned fromTaskIdx)

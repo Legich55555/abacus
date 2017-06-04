@@ -145,7 +145,7 @@ namespace Abacus
             
             for (size_t jobBeginIdx = 0; jobBeginIdx < inputSequence.size(); jobBeginIdx += batchSize)
             {
-                size_t jobEndIdx = std::min(jobEndIdx + batchSize, inputSequence.size());
+                size_t jobEndIdx = std::min(jobBeginIdx + batchSize, inputSequence.size());
                 
                 std::launch jobType = jobBeginIdx != 1U ? 
                     std::launch::async : std::launch::deferred;
