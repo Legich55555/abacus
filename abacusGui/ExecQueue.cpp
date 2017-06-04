@@ -125,7 +125,10 @@ void ExecQueue::ExecLoop()
                     QString allOutput;
                     for (const auto& task : m_doneTasks)
                     {
-                        allOutput.append(task.get()->Output);
+                        if (task.get()->IsSuccessfull)
+                        {
+                            allOutput.append(task.get()->Output);
+                        }
                     }
 
                     emit AllDone(allOutput);
