@@ -11,13 +11,13 @@ namespace Abacus
     namespace Expr
     {
         template< typename Input >
-        bool Parse(Input& input, unsigned threads, const State& variables, Universal& result);
+        bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, Universal& result);
     }
 
     namespace Sequence
     {
         template<typename Input>
-        bool Parse(Input& input, unsigned threads, const State& variables, Universal& result)
+        bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, Universal& result)
         {
             if (!parse< one<'{'> >(input))
             {
@@ -26,7 +26,7 @@ namespace Abacus
 
             Universal firstValue;
             {
-                if (!Expr::Parse(input, threads, variables, firstValue))
+                if (!Expr::Parse(input, isTerminating, threads, variables, firstValue))
                 {
                     throw parse_error("First sequence parameter is not valid.", input);
                 }
@@ -44,7 +44,7 @@ namespace Abacus
             
             Universal secondValue;
             {
-                if (!Expr::Parse(input, threads, variables, secondValue))
+                if (!Expr::Parse(input, isTerminating, threads, variables, secondValue))
                 {
                     throw parse_error("Failed to parse the second parameter in sequence.", input);
                 }

@@ -49,7 +49,7 @@ namespace Abacus
                 template< typename... > class Action,
                 template< typename... > class Control,
                 typename Input >
-            static bool match(Input& input, unsigned threads, const State& variables, std::vector<std::string>&, State& newVariables)
+            static bool match(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, std::vector<std::string>&, State& newVariables)
             {
                 std::string variableName;
                 if (!parse<AssignmentBegin, IdentifierAction>(input, variableName))
@@ -58,7 +58,7 @@ namespace Abacus
                 }
 
                 Universal variableValue;
-                if (!Expr::Parse(input, threads, variables, variableValue))
+                if (!Expr::Parse(input, isTerminating, threads, variables, variableValue))
                 {
                     throw parse_error("Invalid expression.", input);
                 }
@@ -84,7 +84,7 @@ namespace Abacus
                 template< typename... > class Action,
                 template< typename... > class Control,
                 typename Input >
-            static bool match(Input& input, unsigned threads, const State& variables, std::vector<std::string>& output, State&)
+            static bool match(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, std::vector<std::string>& output, State&)
             {
                 if (!parse<PrintExprBegin>(input))
                 {
@@ -92,7 +92,7 @@ namespace Abacus
                 }
 
                 Universal expressionValue;
-                if (!Expr::Parse(input, threads, variables, expressionValue))
+                if (!Expr::Parse(input, isTerminating, threads, variables, expressionValue))
                 {
                     throw parse_error("Invalid expression.", input);
                 }
@@ -134,7 +134,7 @@ namespace Abacus
                 template< typename... > class Action,
                 template< typename... > class Control,
                 typename Input >
-            static bool match(Input& input, unsigned, const State&, std::vector<std::string>& output, State&)
+            static bool match(Input& input, IsTerminating, unsigned, const State&, std::vector<std::string>& output, State&)
             {
                 if (!parse<PrintTextBegin>(input))
                 {
@@ -156,9 +156,9 @@ namespace Abacus
         struct Statement : sor<Assignment, PrintExpr, PrintText>  { }; 
         
         template<typename Input>
-        bool Parse(Input& input, unsigned threads, const State& variables, std::vector<std::string>& output, State& newVariables)
+        bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, std::vector<std::string>& output, State& newVariables)
         {
-            return parse<Statement>(input, threads, variables, output, newVariables);
+            return parse<Statement>(input, isTerminating, threads, variables, output, newVariables);
         }
     }   
 }

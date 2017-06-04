@@ -37,6 +37,7 @@ private:
 
     void ExecLoop();
     void CancelTasksImpl(unsigned fromTaskIdx);
+    bool IsTerminating() const;
 
     struct Task;
     typedef std::unique_ptr<Task> TaskPtr;
@@ -45,6 +46,7 @@ private:
     std::list<TaskPtr> m_waitingTasks;
 
     volatile bool m_destroying;
+
     std::mutex m_mtx;
     std::condition_variable m_wakeup;
     std::thread m_execThread;

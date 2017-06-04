@@ -72,14 +72,14 @@ void ExecQueue::ExecLoop()
 
         if (currTask != nullptr)
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100U));
-
             Abacus::State state = m_doneTasks.empty() ?
                         Abacus::State() : m_doneTasks.back().get()->State;
 
             Task& task = *currTask.get();
 
-            Abacus::ExecResult taskResult = Abacus::Execute(task.Statement.toStdString(), state);
+            auto isTerminating = std::bind(&ExecQueue::IsTerminating, this);
+
+            Abacus::ExecResult taskResult = Abacus::Execute(task.Statement.toStdString(), state, isTerminating);
             task.IsSuccessfull = taskResult.Success;
             task.Output = task.IsSuccessfull ? "Ok. " : "Error. ";
 
@@ -140,4 +140,9 @@ void ExecQueue::CancelTasksImpl(unsigned fromTaskIdx)
         emit TaskCancelled(m_doneTasks.back()->Idx);
         m_doneTasks.pop_back();
     }
+}
+
+bool ExecQueue::IsTerminating() const
+{
+    return m_destroying;
 }

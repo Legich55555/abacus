@@ -1,5 +1,5 @@
 TEMPLATE = subdirs
 
-SUBDIRS = exprCalc abacusGui
+SUBDIRS = exprCalc abacusGui exprCalc/tests
 
 CONFIG += ordered

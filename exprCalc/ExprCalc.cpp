@@ -12,14 +12,14 @@ namespace Abacus
 
     unsigned WORK_THREADS_NUM = 4U;
     
-    Universal Calculate(const std::string& expression, const State& variables)
+    Universal Calculate(const std::string& expression, const State& variables, IsTerminating isTerminating)
     {
         Universal result; // result is initialized as invalid value.
 
         try
         {
             memory_input<> input(expression.data(), expression.size(), "Calculate");
-            if (!Expr::Parse(input, WORK_THREADS_NUM, variables, result))
+            if (!Expr::Parse(input, isTerminating, WORK_THREADS_NUM, variables, result))
             {
                 std::cout << "Failed to parse expression." << std::endl;
             }
@@ -34,7 +34,7 @@ namespace Abacus
         return result;
     }    
 
-    ExecResult Execute(const std::string& statement, const State& variables)
+    ExecResult Execute(const std::string& statement, const State& variables, IsTerminating isTerminating)
     {
         ExecResult execResult = { false, {}, {}};
 
@@ -47,7 +47,7 @@ namespace Abacus
             {
                 execResult.Success = true;
             }
-            else if (Stmt::Parse(input, WORK_THREADS_NUM, variables, execResult.Output, execResult.Variables))
+            else if (Stmt::Parse(input, isTerminating, WORK_THREADS_NUM, variables, execResult.Output, execResult.Variables))
             {
                 execResult.Success = true;
             }

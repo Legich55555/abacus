@@ -16,7 +16,7 @@ namespace Abacus
     namespace Expr
     {
         template< typename Input >
-        bool Parse(Input& input, unsigned threads, const State& variables, Universal& result);
+        bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, Universal& result);
     }
 
     namespace Map
@@ -77,20 +77,28 @@ namespace Abacus
         bool CalculateSubSequence(
             const char* inputCurr,
             size_t inputSize,
+            IsTerminating isTerminating,
             const std::string& paramName,
             std::vector<IT>& inputSequence,
             const size_t beginIdx,
             const size_t endIdx,
             std::vector<OT>& outputSequence)
         {
+            static const unsigned TERMINATE_CHECK_PERIOD = 100U;
+
             for (size_t idx = beginIdx; idx < endIdx; ++idx)
             {
+                if (idx % TERMINATE_CHECK_PERIOD == 0 && isTerminating())
+                {
+                    return false;
+                }
+
                 State lambdaParams = { {paramName, Universal(inputSequence[idx])} };
 
                 memory_input<> input(inputCurr, inputSize, "CalculateSubSequence");
                 
                 Universal callResult;
-                if (!Expr::Parse(input, 1U, lambdaParams, callResult))
+                if (!Expr::Parse(input, isTerminating, 1U, lambdaParams, callResult))
                 {
                     // TODO: implement detailed error report.
                     return false;
@@ -108,6 +116,7 @@ namespace Abacus
         bool CalculateSequence(
             const char* inputCurr,
             size_t inputSize,
+            IsTerminating isTerminating,
             unsigned threads,
             const std::string& paramName,
             std::vector<IT>& inputSequence,
@@ -131,7 +140,7 @@ namespace Abacus
                     std::launch::async : std::launch::deferred;
 
                 auto jobFunc = std::bind(CalculateSubSequence<IT, OT>,
-                        inputCurr, inputSize, std::ref(paramName), std::ref(inputSequence), jobBeginIdx, jobEndIdx, std::ref(outputSequence));
+                        inputCurr, inputSize, isTerminating, std::ref(paramName), std::ref(inputSequence), jobBeginIdx, jobEndIdx, std::ref(outputSequence));
                 
                 jobs.push_back(std::async(jobType, jobFunc));
             }
@@ -147,7 +156,7 @@ namespace Abacus
         }
 
         template< typename Input >
-        bool Parse(Input& input, unsigned threads, const State& variables, Universal& result)
+        bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, Universal& result)
         {
             if (parse<MapBegin>(input) == false)
             {
@@ -155,7 +164,7 @@ namespace Abacus
             }
 
             Universal firstValue;
-            if (!Expr::Parse(input, threads, variables, firstValue))
+            if (!Expr::Parse(input, isTerminating, threads, variables, firstValue))
             {
                 throw parse_error("First map() parameter is not valid.", input);
             }
@@ -179,7 +188,7 @@ namespace Abacus
             // Calculate the first item of sequence
             Universal callResult;
             State lambdaParams = { { lambdaParameter, Universal(firstValue.IntSequence.front()) } };
-            if (!Expr::Parse(input, threads, lambdaParams, callResult))
+            if (!Expr::Parse(input, isTerminating, threads, lambdaParams, callResult))
             {
                 throw parse_error("Invalid lambda syntax.", input);
             }
@@ -194,7 +203,7 @@ namespace Abacus
                 std::vector<int> intResult(0);
                 
                 calculateSequenceResult = 
-                    CalculateSequence(inputCurr, inputSize, threads, lambdaParameter, firstValue.IntSequence, intResult);
+                    CalculateSequence(inputCurr, inputSize, isTerminating, threads, lambdaParameter, firstValue.IntSequence, intResult);
             
                 result = Universal(intResult);
             }
@@ -203,7 +212,7 @@ namespace Abacus
                 std::vector<double> realResult(0);
                 
                 calculateSequenceResult = 
-                    CalculateSequence(inputCurr, inputSize, threads, lambdaParameter, firstValue.IntSequence, realResult);
+                    CalculateSequence(inputCurr, inputSize, isTerminating, threads, lambdaParameter, firstValue.IntSequence, realResult);
             
                 result = Universal(realResult);
             }

@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <functional>
 
 /**
  * @brief Abacus is a library for calculating math expression. 
@@ -35,9 +36,11 @@
 namespace Abacus
 {
     /**
-     * @brief Variables is a set of variables in Abacus
+     * @brief State is a set of variables in Abacus
      */
     typedef std::map<std::string, Universal> State;
+
+    typedef std::function<bool()> IsTerminating;
     
     /**
      * @brief ExecResult represents result of statement execution.
@@ -50,11 +53,11 @@ namespace Abacus
         /** 
          * @brief Output generated during of execution
          *
-         * Output can be generated event if execution failed.
+         * Output can be generated even if execution failed.
          */
         std::vector<std::string> Output;
 
-        /** @brief Variables defined and calculated during of execution. */
+        /** @brief Variables which were defined and calculated during of execution. */
         State Variables;
     };
 
@@ -68,7 +71,7 @@ namespace Abacus
      * 
      * @return Result of calculation in form of Universal.
      */
-    Universal Calculate(const std::string& expression, const State& variables);
+    Universal Calculate(const std::string& expression, const State& variables, IsTerminating isTerminating = nullptr);
     
     /**
      * @brief Execute statement 
@@ -78,7 +81,5 @@ namespace Abacus
      * 
      * @return Result of calculation in form of Universal.
      */
-    ExecResult Execute(const std::string& statement, const State& variables);
-    
-//     ExecResult Execute(const std::vector<std::string>& program);
+    ExecResult Execute(const std::string& statement, const State& variables, IsTerminating isTerminating = nullptr);
 }
