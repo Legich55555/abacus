@@ -98,9 +98,20 @@ namespace Abacus
                 memory_input<> input(inputCurr, inputSize, "CalculateSubSequence");
                 
                 Universal callResult;
-                if (!Expr::Parse(input, isTerminating, 1U, lambdaParams, callResult))
+                try
                 {
-                    // TODO: implement detailed error report.
+                    if (!Expr::Parse(input, isTerminating, 1U, lambdaParams, callResult))
+                    {
+                        // TODO: implement detailed error report.
+                        return false;
+                    }
+                }
+                catch (const parse_error& err)
+                {
+                    return false;
+                }
+                catch (const std::runtime_error& err)
+                {
                     return false;
                 }
                 

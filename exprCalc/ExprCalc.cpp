@@ -56,10 +56,15 @@ namespace Abacus
                 execResult.Output.push_back("Syntax error");
             }
         }
-        catch (const parse_error& parseError)
+        catch (const parse_error& err)
         {
-            execResult.Output.push_back(parseError.what());
-            execResult.Output.push_back("Statement failed.");
+            execResult.Output.push_back(err.what());
+            execResult.Output.push_back("Statement parsing failed.");
+        }
+        catch (const std::runtime_error& err)
+        {
+            execResult.Output.push_back(err.what());
+            execResult.Output.push_back("Statement execution failed.");
         }
         
         return execResult; 

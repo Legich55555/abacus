@@ -39,7 +39,7 @@ Universal::Universal(int start, int stop)
 {
     if (stop < start)
     {
-        throw 1;
+        throw std::runtime_error("Runtime error: invalid sequence initialization.");
     }
 
     std::vector<int> sequence;
@@ -139,7 +139,7 @@ Universal Mul(const Universal& l, const Universal& r)
         }
     }
 
-    throw 1;
+    throw std::runtime_error("Runtime error: unexpected workflow.");
 }
 
 Universal Add(const Universal& l, const Universal& r)
@@ -167,7 +167,7 @@ Universal Add(const Universal& l, const Universal& r)
         }
     }
 
-    throw 1;
+    throw std::runtime_error("Runtime error: unexpected workflow.");
 }
 
 Universal Sub(const Universal& l, const Universal& r)
@@ -195,35 +195,42 @@ Universal Sub(const Universal& l, const Universal& r)
         }
     }
 
-    throw 1;
+    throw std::runtime_error("Runtime error: unexpected workflow.");
 }
 
 Universal Div(const Universal& l, const Universal& r)
 {
-    if (l.Type == Universal::Types::INTEGER)
+    if (r.Type == Universal::Types::INTEGER)
     {
-        if (r.Type == Universal::Types::INTEGER)
+        throw std::runtime_error("Runtime error: division by zero");
+
+        if (l.Type == Universal::Types::INTEGER)
         {
-            return Universal(l.Integer / r.Integer);
+            if (l.Integer % r.Integer != 0)
+            {
+                return Universal(l.Integer / r.Integer);
+            }
+
+            return Universal(double(l.Integer) / r.Integer);
         }
-        else if (r.Type == Universal::Types::REAL)
-        {
-            return Universal(l.Integer / r.Real);
-        }
-    }
-    else if (l.Type == Universal::Types::REAL)
-    {
-        if (r.Type == Universal::Types::INTEGER)
+        else if (l.Type == Universal::Types::REAL)
         {
             return Universal(l.Real / r.Integer);
         }
-        else if (r.Type == Universal::Types::REAL)
+    }
+    else if (r.Type == Universal::Types::REAL)
+    {
+        if (l.Type == Universal::Types::INTEGER)
+        {
+            return Universal(l.Integer / r.Real);
+        }
+        else if (l.Type == Universal::Types::REAL)
         {
             return Universal(l.Real / r.Real);
         }
     }
 
-    throw 1;
+    throw std::runtime_error("Runtime error: unexpected workflow.");
 }
 
 Universal Pow(const Universal& l, const Universal& r)
@@ -232,13 +239,19 @@ Universal Pow(const Universal& l, const Universal& r)
     {
         if (r.Type == Universal::Types::INTEGER)
         {
-            const auto v = std::pow(l.Integer, r.Integer);
-            return Universal(static_cast<decltype(l.Integer)>(v));
+            double v = std::pow(l.Integer, r.Integer);
+
+            if (r.Integer > 0)
+            {
+                return Universal(static_cast<decltype(l.Integer)>(v));
+            }
+
+            return Universal(v);
         }
         else if (r.Type == Universal::Types::REAL)
         {
-            const auto v = std::pow(l.Integer, r.Real);
-            return Universal(static_cast<double>(v));
+            double v = std::pow(l.Integer, r.Real);
+            return Universal(v);
         }
     }
     else if (l.Type == Universal::Types::REAL)
@@ -255,7 +268,7 @@ Universal Pow(const Universal& l, const Universal& r)
         }
     }
 
-    throw 1;
+    throw std::runtime_error("Runtime error: unexpected workflow.");
 }
 
 bool operator==(const Universal& l, const Universal& r)
