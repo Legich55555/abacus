@@ -33,26 +33,6 @@ Universal::Universal(const Universal& other)
     }
 }
 
-Universal::Universal(int start, int stop)
-    : Type(Types::INVALID)
-{
-    if (stop < start)
-    {
-        throw std::runtime_error("Runtime error: invalid sequence initialization.");
-    }
-
-    std::vector<int> sequence;
-    sequence.reserve(stop - start + 1);
-
-    for (int i = start; i <= stop; ++i)
-    {
-        sequence.push_back(i);
-    }
-
-    new (&this->IntSequence) std::vector<int>(std::move(sequence));
-    Type = Types::INT_SEQUENCE;
-}
-
 Universal::~Universal()
 {
     using std::string;

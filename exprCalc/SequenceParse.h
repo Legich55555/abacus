@@ -60,8 +60,22 @@ namespace Abacus
             {
                 throw parse_error("Failed to parse sequence. There is not closing brace.", input);
             }
-            
-            result = Universal(firstValue.Integer, secondValue.Integer);
+
+            const int step = secondValue.Integer > firstValue.Integer ? 1 : -1;
+            const int size = secondValue.Integer > firstValue.Integer ?
+                        secondValue.Integer - firstValue.Integer + 1 : firstValue.Integer - secondValue.Integer + 1;
+
+            std::vector<int> sequence;
+            sequence.reserve(static_cast<size_t>(size));
+
+            for (int i = firstValue.Integer; i != secondValue.Integer; i += step)
+            {
+                sequence.push_back(i);
+            }
+
+            sequence.push_back(secondValue.Integer);
+
+            result = Universal(std::move(sequence));
 
             return true;
         }

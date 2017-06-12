@@ -35,10 +35,9 @@ namespace Abacus
         
         explicit Universal(int v) : Type(Types::INTEGER), Integer(v) {}
         explicit Universal(double v) : Type(Types::REAL), Real(v) {}
-        explicit Universal(const std::vector<int> sequence) : Type(Types::INT_SEQUENCE), IntSequence(sequence) {}
+        explicit Universal(std::vector<int>&& sequence) : Type(Types::INT_SEQUENCE), IntSequence(std::move(sequence)) {}
+        explicit Universal(const std::vector<int>& sequence) : Type(Types::INT_SEQUENCE), IntSequence(sequence) {}
         explicit Universal(const std::vector<double>& sequence) : Type(Types::REAL_SEQUENCE), RealSequence(sequence) {}
-        
-        Universal(int start, int stop);
         
         ~Universal();
         

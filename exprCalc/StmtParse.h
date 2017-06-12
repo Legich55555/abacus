@@ -158,7 +158,13 @@ namespace Abacus
         template<typename Input>
         bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, std::vector<std::string>& output, State& newVariables)
         {
-            return parse<Statement>(input, isTerminating, threads, variables, output, newVariables);
+            bool result = parse<Statement>(input, isTerminating, threads, variables, output, newVariables);
+            if (result && input.empty())
+            {
+                return true;
+            }
+
+            return false;
         }
     }   
 }

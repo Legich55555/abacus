@@ -89,6 +89,11 @@ namespace Abacus
             {
                 for (size_t idx = 0; idx < firstValue.IntSequence.size(); ++idx)
                 {
+                    if (isTerminating())
+                    {
+                        return false;
+                    }
+
                     memory_input<> lambdaInput(inputCurr, inputSize, "reduce() lambda");
                     
                     auto& lambdaInputRef = idx != 0 ? lambdaInput : input;

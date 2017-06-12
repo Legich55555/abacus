@@ -16,13 +16,18 @@ struct ExecQueue::Task
 
 ExecQueue::ExecQueue()
     : m_destroying(false),
+      m_cancellingCurrentTask(false),
       m_execThread(&ExecQueue::ExecLoop, this)
 {
 }
 
 ExecQueue::~ExecQueue()
 {
-    m_destroying = true;
+    {
+        std::lock_guard<std::mutex> lock(m_mtx);
+        m_destroying = true;
+    }
+
     m_execThread.join();
 }
 
@@ -35,7 +40,15 @@ void ExecQueue::AddBatch(const std::vector<QString>& batch, unsigned firstTaskId
 
         for (unsigned i = 0; i < batch.size(); ++i)
         {
-            m_waitingTasks.push_back(TaskPtr(new Task { false, i + firstTaskIdx, batch[i], {}, {}}));
+//            bool IsSuccessfull;
+//            unsigned Idx;
+//            QString Statement;
+//            QString Preview;
+//            QString Output;
+//            Abacus::State State;
+
+
+            m_waitingTasks.push_back(TaskPtr(new Task { false, i + firstTaskIdx, batch[i], {}, {}, {}}));
         }
 
     }
@@ -64,6 +77,7 @@ void ExecQueue::ExecLoop()
             {
                 currTask = std::move(m_waitingTasks.front());
                 m_waitingTasks.pop_front();
+                m_cancellingCurrentTask = false;
             }
             else
             {
@@ -78,9 +92,9 @@ void ExecQueue::ExecLoop()
 
             Task& task = *currTask.get();
 
-            auto isTerminating = std::bind(&ExecQueue::IsTerminating, this);
+            auto isCancelling = std::bind(&ExecQueue::IsCancelling, this);
 
-            Abacus::ExecResult taskResult = Abacus::Execute(task.Statement.toStdString(), state, isTerminating);
+            Abacus::ExecResult taskResult = Abacus::Execute(task.Statement.toStdString(), state, isCancelling);
             task.IsSuccessfull = taskResult.Success;
             task.Preview = task.IsSuccessfull ? "Ok. " : "Error. ";
 
@@ -113,6 +127,7 @@ void ExecQueue::ExecLoop()
                 }
             }
 
+            if (!m_cancellingCurrentTask)
             {
                 std::lock_guard<std::mutex> lock(m_mtx);
 
@@ -140,10 +155,19 @@ void ExecQueue::ExecLoop()
 
 void ExecQueue::CancelTasksImpl(unsigned fromTaskIdx)
 {
+    // This function must be called under lock on m_mtx.
+
     while (!m_waitingTasks.empty() && m_waitingTasks.back()->Idx >= fromTaskIdx)
     {
         emit TaskCancelled(m_waitingTasks.back()->Idx);
         m_waitingTasks.pop_back();
+    }
+
+    if ((0 == fromTaskIdx) ||
+        ((m_doneTasks.size() - fromTaskIdx) == 0))
+    {
+        qInfo("Cancelled current task %d", fromTaskIdx);
+        m_cancellingCurrentTask = true;
     }
 
     while (!m_doneTasks.empty() && m_doneTasks.back()->Idx >= fromTaskIdx)
@@ -153,7 +177,8 @@ void ExecQueue::CancelTasksImpl(unsigned fromTaskIdx)
     }
 }
 
-bool ExecQueue::IsTerminating() const
+bool ExecQueue::IsCancelling() const
 {
-    return m_destroying;
+    std::lock_guard<std::mutex> lock(m_mtx);
+    return m_destroying || m_cancellingCurrentTask;
 }

@@ -36,7 +36,7 @@ namespace Abacus
 
     ExecResult Execute(const std::string& statement, const State& variables, IsTerminating isTerminating)
     {
-        ExecResult execResult = { false, {}, {}};
+        ExecResult execResult = { ResultBrief::TERMINATED, {}, {}};
 
         try
         {
@@ -45,11 +45,11 @@ namespace Abacus
             // If it is an empty statement then it is ignored without rising any error.
             if (parse<star<space>>(input) && input.size() == 0)
             {
-                execResult.Success = true;
+                execResult.Brief = ResultBrief::SUCCEEDED;
             }
             else if (Stmt::Parse(input, isTerminating, WORK_THREADS_NUM, variables, execResult.Output, execResult.Variables))
             {
-                execResult.Success = true;
+                execResult.Brief = ResultBrief::SUCCEEDED;
             }
             else
             {

@@ -40,20 +40,55 @@ namespace Abacus
      */
     typedef std::map<std::string, Universal> State;
 
+    /**
+     * @brief Function type for "Check if terminate was requested" callback
+     */
     typedef std::function<bool()> IsTerminating;
     
+    /**
+     * @brief The ResultBrief enum represents brief result of execution
+     */
+    enum ResultBrief
+    {
+        TERMINATED,
+        SUCCEEDED,
+        FAILED
+    };
+
+    /**
+     * @brief Position represents a location of some character in statements text.
+     *
+     * @note Position is used to locate errors in statements text.
+     */
+    struct Position
+    {
+        size_t CharIdx;
+    };
+
+    /**
+     * @brief Error contains all information about a particular issue in statement.
+     */
+    struct Error
+    {
+        std::string Message;
+        std::vector<Position> Positions;
+    };
+
     /**
      * @brief ExecResult represents result of statement execution.
      */
     struct ExecResult
     {
-        /** @brief If execution was successfull or not */
-        bool Success;
+        /** @brief Brief result of execution */
+        ResultBrief Brief;
+
+        /** @brief Errors happened during of execution */
+        std::vector<Error> Errors;
 
         /** 
          * @brief Output generated during of execution
          *
-         * Output can be generated even if execution failed.
+         * @note Output can be generated even if execution was terminated or failed.
          */
         std::vector<std::string> Output;
 

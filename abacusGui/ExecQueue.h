@@ -37,7 +37,7 @@ private:
 
     void ExecLoop();
     void CancelTasksImpl(unsigned fromTaskIdx);
-    bool IsTerminating() const;
+    bool IsCancelling() const;
 
     struct Task;
     typedef std::unique_ptr<Task> TaskPtr;
@@ -45,9 +45,10 @@ private:
     std::list<TaskPtr> m_doneTasks;
     std::list<TaskPtr> m_waitingTasks;
 
-    volatile bool m_destroying;
+    bool m_destroying;
+    bool m_cancellingCurrentTask;
 
-    std::mutex m_mtx;
+    mutable std::mutex m_mtx;
     std::condition_variable m_wakeup;
     std::thread m_execThread;
 };

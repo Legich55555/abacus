@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ExprCalc.h"
 #include "Universal.h"
 
 #include <tao/pegtl.hpp>
@@ -57,24 +58,31 @@ namespace Abacus
         }
         
         template<class OT>
-        OT GetUniversalValue(const Universal& u)
+        OT GetValue(const Universal& u)
         {
             static_assert(std::is_integral<OT>::value || std::is_floating_point<OT>::value,
                           "Invalid sequence data type.");
             
             if (std::is_same<OT, int>::value)
             {
+                assert(Universal::Types::INTEGER == u.Type);
                 return u.Integer;
             }
             else if (std::is_same<OT, double>::value)
             {
+                assert(Universal::Types::REAL == u.Type);
                 return u.Real;
             }
 
+            // It is not reachible.
             return OT();
         }
 
-        typedef std::pair<bool, std::string> JobResult;
+        struct JobResult
+        {
+            ResultBrief Brief;
+            std::vector<Error> Errors;
+        };
 
         template<typename IT, typename OT>
         JobResult CalculateSubSequence(
@@ -82,7 +90,7 @@ namespace Abacus
             size_t inputSize,
             IsTerminating isTerminating,
             const std::string& paramName,
-            std::vector<IT>& inputSequence,
+            const std::vector<IT>& inputSequence,
             const size_t beginIdx,
             const size_t endIdx,
             std::vector<OT>& outputSequence)
@@ -95,7 +103,7 @@ namespace Abacus
                     idx % TERMINATE_CHECK_PERIOD == 0 &&
                     isTerminating())
                 {
-                    return std::make_pair(false, std::string("Terminated."));
+                    return JobResult { ResultBrief::TERMINATED, Error { { }, { 0U } } };
                 }
 
                 State lambdaParams = { {paramName, Universal(inputSequence[idx])} };
@@ -105,22 +113,52 @@ namespace Abacus
                 Universal callResult;
                 try
                 {
-                    if (!Expr::Parse(input, isTerminating, 1U, lambdaParams, callResult))
+                    if (Expr::Parse(input, isTerminating, 1U, lambdaParams, callResult))
                     {
-                        return std::make_pair(false, std::string("Runtime error."));
+                        const OT v = GetValue<OT>(callResult);
+
+                        outputSequence[idx] = v;
                     }
+                    else
+                    {
+                        return JobResult
+                        {
+                            ResultBrief::FAILED,
+                            { { "Map lambda execution error"}, {input.byte()} }
+                        };
+                    }
+                }
+                catch (const parse_error& err)
+                {
+                    return JobResult
+                    {
+                        ResultBrief::FAILED,
+                        { { "Map lambda execution error", err.what()}, err.positions }
+                    };
                 }
                 catch (const std::runtime_error& err)
                 {
-                    return std::make_pair(false, std::string(err.what()));
+                    return JobResult
+                    {
+                        ResultBrief::FAILED,
+                        { { "Runtime error", err.what() }, { 0U } }
+                    };
                 }
-                
-                const OT v = GetUniversalValue<OT>(callResult);
-                
-                outputSequence[idx] = v;
+                catch (...)
+                {
+                    return JobResult
+                    {
+                        ResultBrief::FAILED,
+                        { { "Unnknown error" }, { 0U } }
+                    };
+                }
             }
             
-            return std::make_pair(true, std::string());
+            return JobResult
+            {
+                ResultBrief::SUCCEEDED,
+                { { }, { } }
+            };
         }
 
         template<typename IT, typename OT>
