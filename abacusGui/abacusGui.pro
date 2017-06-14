@@ -28,4 +28,6 @@ FORMS += \
 unix: !osx: LIBS += -L../exprCalc -lexprCalc
 win32:!winrt: LIBS += -L../exprCalc/debug -lexprCalc
 
+AbacusUI.depends = exprCalc
+
 INCLUDEPATH += $$PWD/..

@@ -63,7 +63,6 @@ namespace Abacus
                     isTerminating())
                 {
                     throw TerminatedException {};
-                    //return ParseResult { ResultBrief::TERMINATED, { } };
                 }
 
                 State lambdaParams = { {paramName, Universal(inputSequence[idx])} };
@@ -74,45 +73,12 @@ namespace Abacus
                 if (Expr::Parse(input, isTerminating, 1U, lambdaParams, callResult))
                 {
                     outputSequence[idx] = GetNumber<OT>(callResult);
-                    //outputSequence[idx] = outputSequence[idx] + 1;
                 }
                 else
                 {
                     throw parse_error("Map lambda execution error", input);
                 }
-
-//                try
-//                {
-//                    if (Expr::Parse(input, isTerminating, 1U, lambdaParams, callResult))
-//                    {
-//                        outputSequence[idx] = callResult.GetValue<OT>();
-//                    }
-//                    else
-//                    {
-//                        throw parse_error("Map lambda execution error", input);
-////                        return ParseResult
-////                        {
-////                            ResultBrief::FAILED, { { "Map lambda execution error", { input.position() } } }
-////                        };
-//                    }
-//                }
-//                catch (const parse_error& err)
-//                {
-//                    return ParseResult
-//                    {
-//                        ResultBrief::FAILED, { { err.what(), err.positions } }
-//                    };
-//                }
-//                catch (const std::runtime_error& err)
-//                {
-//                    return ParseResult
-//                    {
-//                        ResultBrief::FAILED, { { err.what(), { input.position() } } }
-//                    };
-//                }
             }
-            
-//            return ParseResult { ResultBrief::SUCCEEDED, { } };
         }
 
         template<typename Input, typename IT, typename OT>
@@ -170,22 +136,6 @@ namespace Abacus
                 {
                     jobErrors.push_back(parse_error(err.what(), input));
                 }
-//                const JobResult jobResult = job.get();
-
-//                // Result TERMINATED overrides FAILED because there is no way to link errors with source code
-//                // in case of execution termination.
-//                if (jobResult.Brief == ResultBrief::TERMINATED && result.Brief != ResultBrief::TERMINATED)
-//                {
-//                    result.Brief = ResultBrief::TERMINATED;
-//                    result.Errors.swap(jobResult.Errors);
-//                    break;
-//                }
-//                else if (jobResult.Brief == ResultBrief::FAILED && result.Brief != ResultBrief::FAILED)
-//                {
-//                    result.Brief = ResultBrief::FAILED;
-//                }
-
-//                result.Errors.insert(result.Errors.end(), jobResult.Errors.cbegin(), jobResult.Errors.cend());
             }
 
             if (isTerminated)
