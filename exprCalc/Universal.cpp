@@ -1,7 +1,6 @@
 #include "Universal.h"
 
 #include <cmath>
-#include <cassert>
 #include <sstream>
 
 namespace Abacus
@@ -35,17 +34,13 @@ Universal::Universal(const Universal& other)
 
 Universal::~Universal()
 {
-    using std::string;
-    using std::pair;
-    using std::vector;
-
     switch(Type)
     {
     case Types::INT_SEQUENCE:
-        IntSequence.~vector<int>();
+        IntSequence.~IntArray();
         break;
     case Types::REAL_SEQUENCE:
-        RealSequence.~vector<double>();
+        RealSequence.~RealArray();
         break;
     default:
         break;
@@ -90,7 +85,7 @@ std::string Universal::ToString() const
         return std::string("Invalid");
     }
 
-    return "Not implemented";
+    throw std::runtime_error("Runtime error: unexpected workflow.");
 }
 
 Universal Mul(const Universal& l, const Universal& r)
@@ -280,9 +275,7 @@ bool operator==(const Universal& l, const Universal& r)
         return l.RealSequence == r.RealSequence;
     }
 
-    assert(false);
-
-    return false;
+    throw std::runtime_error("Runtime error: unexpected workflow.");
 }
 
 bool operator!=(const Universal& l, const Universal& r)

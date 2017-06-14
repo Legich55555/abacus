@@ -63,11 +63,29 @@ namespace Abacus
                 typename Input >
             static bool match(Input& input, IsTerminating, unsigned, BinaryStacks& stacks, const State&)
             {
-                const auto opIt = BIN_OPERATORS.find(input.peek_char(0));
-                if (opIt != BIN_OPERATORS.cend())
+                struct BinaryOperatorDef
                 {
-                    stacks.PushOperator(opIt->second);
-                    input.bump(1);
+                    int Priority;
+                    BinaryOperator::FuncType Func;
+                };
+
+                static const std::map<char, BinaryOperatorDef> BIN_OPERATORS =
+                {
+                    { '+', { 10, Add } },
+                    { '-', { 10, Sub } },
+                    { '/', { 20, Div } },
+                    { '*', { 30, Mul } },
+                    { '^', { 40, Pow } }
+                };
+
+                const auto opDefIt = BIN_OPERATORS.find(input.peek_char(0));
+                if (opDefIt != BIN_OPERATORS.cend())
+                {
+                    const BinaryOperatorDef& opDef = opDefIt->second;
+
+                    stacks.PushOperator(BinaryOperator {opDef.Priority, opDef.Func, input.position() } );
+
+                    input.bump(1U);
                     
                     return true;
                 }
@@ -163,10 +181,21 @@ namespace Abacus
         struct Action<Integer>
         {
             template< typename Input >
-            static void apply(const Input& in, IsTerminating, unsigned, BinaryStacks& stacks, const State&)
+            static void apply(const Input& input, IsTerminating, unsigned, BinaryStacks& stacks, const State&)
             {
-                std::string strVal = in.string();
-                int val = std::stoi(strVal);
+                std::string strVal = input.string();
+
+                int val;
+
+                try
+                {
+                    val = std::stoi(strVal);
+                }
+                catch (const std::exception& ex)
+                {
+                    throw parse_error(ex.what(), input);
+                }
+
                 stacks.PushUniversal(Universal(val));
             }
         };
@@ -175,10 +204,21 @@ namespace Abacus
         struct Action<Real>
         {
             template< typename Input >
-            static void apply(const Input& in, IsTerminating, unsigned, BinaryStacks& stacks, const State&)
+            static void apply(const Input& input, IsTerminating, unsigned, BinaryStacks& stacks, const State&)
             {
-                std::string strVal = in.string();
-                double val = std::stof(strVal);
+                std::string strVal = input.string();
+
+                double val;
+
+                try
+                {
+                    val = std::stof(strVal);
+                }
+                catch (const std::exception& ex)
+                {
+                    throw parse_error(ex.what(), input);
+                }
+
                 stacks.PushUniversal(Universal(val));
             }
         };
@@ -187,9 +227,10 @@ namespace Abacus
         struct Action<Variable>
         {
             template< typename Input >
-            static void apply(const Input& in, IsTerminating, unsigned, BinaryStacks& stacks, const State& variables)
+            static void apply(const Input& input, IsTerminating, unsigned, BinaryStacks& stacks, const State& variables)
             {
-                std::string strVal = in.string();
+                std::string strVal = input.string();
+
                 const auto it = variables.find(strVal);
                 if (it != variables.cend())
                 {
@@ -197,7 +238,7 @@ namespace Abacus
                     return;
                 }
                 
-                throw parse_error("Undefined variable", in);
+                throw parse_error("Undefined variable", input);
             }
         };
         

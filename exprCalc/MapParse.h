@@ -40,44 +40,6 @@ namespace Abacus
             }
         };
         
-        template<typename T>
-        Universal::Types GetUniversalSequenceType()
-        {
-            static_assert(std::is_same<T, int>::value || std::is_same<T, double>::value, "Invalid sequence data type.");
-
-            if (std::is_same<T, int>::value)
-            {
-                return Universal::Types::INTEGER;
-            }
-            else if (std::is_same<T, double>::value)
-            {
-                return Universal::Types::REAL;
-            }
-            
-            return Universal::Types::INVALID;
-        }
-        
-        template<class OT>
-        OT GetValue(const Universal& u)
-        {
-            static_assert(std::is_integral<OT>::value || std::is_floating_point<OT>::value,
-                          "Invalid sequence data type.");
-            
-            if (std::is_same<OT, int>::value)
-            {
-                assert(Universal::Types::INTEGER == u.Type);
-                return u.Integer;
-            }
-            else if (std::is_same<OT, double>::value)
-            {
-                assert(Universal::Types::REAL == u.Type);
-                return u.Real;
-            }
-
-            // It is not reachible.
-            return OT();
-        }
-
         struct JobResult
         {
             ResultBrief Brief;
@@ -103,7 +65,7 @@ namespace Abacus
                     idx % TERMINATE_CHECK_PERIOD == 0 &&
                     isTerminating())
                 {
-                    return JobResult { ResultBrief::TERMINATED, Error { { }, { 0U } } };
+                    return JobResult { ResultBrief::TERMINATED, { { "Terminated" }, { 0U } } };
                 }
 
                 State lambdaParams = { {paramName, Universal(inputSequence[idx])} };
@@ -115,9 +77,7 @@ namespace Abacus
                 {
                     if (Expr::Parse(input, isTerminating, 1U, lambdaParams, callResult))
                     {
-                        const OT v = GetValue<OT>(callResult);
-
-                        outputSequence[idx] = v;
+                        outputSequence[idx] = callResult.GetValue<OT>();
                     }
                     else
                     {
@@ -162,7 +122,7 @@ namespace Abacus
         }
 
         template<typename IT, typename OT>
-        bool CalculateSequence(
+        JobResult CalculateSequence(
             const char* inputCurr,
             size_t inputSize,
             IsTerminating isTerminating,
@@ -194,14 +154,24 @@ namespace Abacus
                 jobs.push_back(std::async(jobType, jobFunc));
             }
             
-            bool totalResult = true;
+            JobResult result = { ResultBrief::SUCCEEDED, { } };
             for (auto& job : jobs)
             {
-                JobResult jobResult = job.get();
-                totalResult = totalResult && jobResult.first;
+                const JobResult jobResult = job.get();
+
+                if (jobResult.Brief == ResultBrief::TERMINATED && result.Brief != ResultBrief::TERMINATED)
+                {
+                    result.Brief = ResultBrief::TERMINATED;
+                }
+                else if (jobResult.Brief == ResultBrief::FAILED && result.Brief != ResultBrief::FAILED)
+                {
+                    result.Brief = ResultBrief::FAILED;
+                }
+
+                result.Errors.insert(result.Errors.end(), jobResult.Errors.cbegin(), jobResult.Errors.cend());
             }
 
-            return totalResult;
+            return result;
         }
 
         template< typename Input >
@@ -221,7 +191,7 @@ namespace Abacus
                 firstValue.IntSequence.empty())
             {
                 // TODO: add support for real number sequences.
-                throw parse_error("First map() parameter is not valid.", input);
+                throw parse_error("First map() parameter is not valid integer sequence.", input);
             }
             
             std::string lambdaParameter;
@@ -246,13 +216,13 @@ namespace Abacus
                 throw parse_error("Runtime error in map() lambda. Result is not a number.", input);
             }  
             
-            bool calculateSequenceResult = false;
+            JobResult calcResult = { ResultBrief::SUCCEEDED, { } };
             if (Universal::Types::INTEGER == callResult.Type)
             {
                 std::vector<int> intResult(0);
                 
-                calculateSequenceResult = 
-                    CalculateSequence(inputCurr, inputSize, isTerminating, threads, lambdaParameter, firstValue.IntSequence, intResult);
+                calcResult = CalculateSequence(inputCurr, inputSize, isTerminating, threads,
+                                               lambdaParameter, firstValue.IntSequence, intResult);
             
                 result = Universal(intResult);
             }
@@ -260,13 +230,13 @@ namespace Abacus
             {
                 std::vector<double> realResult(0);
                 
-                calculateSequenceResult = 
-                    CalculateSequence(inputCurr, inputSize, isTerminating, threads, lambdaParameter, firstValue.IntSequence, realResult);
+                calcResult = CalculateSequence(inputCurr, inputSize, isTerminating, threads,
+                                               lambdaParameter, firstValue.IntSequence, realResult);
             
                 result = Universal(realResult);
             }
             
-            if (!calculateSequenceResult)
+            if (!calcResult.Brief != ResultBrief::SUCCEEDED)
             {
                 throw parse_error("Runtime error.", input);
             }

@@ -1,25 +1,24 @@
 #pragma once
 
 #include "Universal.h"
+#include "ExprParse.h"
+
+#include <tao/pegtl.hpp>
 
 #include <cassert>
 #include <vector>
 
 namespace Abacus
 {
+    using namespace tao::TAOCPP_PEGTL_NAMESPACE;
+
     struct BinaryOperator
     {
+        typedef Universal(*FuncType)(const Universal&, const Universal&);
+
         int Priority;
-        Universal(*Func)(const Universal&, const Universal&);
-    };
-    
-    const std::map<char, BinaryOperator> BIN_OPERATORS = 
-    {
-        { '+', { 10, Add } },
-        { '-', { 10, Sub } }, 
-        { '/', { 20, Div } },
-        { '*', { 30, Mul } },
-        { '^', { 40, Pow } }
+        FuncType Func;
+        position Pos;
     };
     
     struct BinaryOperatorsStack
@@ -56,7 +55,7 @@ namespace Abacus
         }
         
     private:
-        
+
         void RollUp()
         {
             assert(m_values.size() > 1U);
@@ -72,8 +71,17 @@ namespace Abacus
             BinaryOperator op = m_operators.back();
             m_operators.pop_back();
             
-            Universal result = op.Func(left, right);
-            m_values.push_back(result);
+            m_values.reserve(m_values.size() + 1U);
+
+            try
+            {
+                Universal result = op.Func(left, right);
+                m_values.push_back(result);
+            }
+            catch (const std::runtime_error& err)
+            {
+                throw parse_error(err.what(), op.Pos);
+            }
         }
         
         std::vector<BinaryOperator> m_operators;
