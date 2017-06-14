@@ -40,14 +40,6 @@ void ExecQueue::AddBatch(const std::vector<QString>& batch, unsigned firstTaskId
 
         for (unsigned i = 0; i < batch.size(); ++i)
         {
-//            bool IsSuccessfull;
-//            unsigned Idx;
-//            QString Statement;
-//            QString Preview;
-//            QString Output;
-//            Abacus::State State;
-
-
             m_waitingTasks.push_back(TaskPtr(new Task { false, i + firstTaskIdx, batch[i], {}, {}, {}}));
         }
 
@@ -95,7 +87,7 @@ void ExecQueue::ExecLoop()
             auto isCancelling = std::bind(&ExecQueue::IsCancelling, this);
 
             Abacus::ExecResult taskResult = Abacus::Execute(task.Statement.toStdString(), state, isCancelling);
-            task.IsSuccessfull = taskResult.Success;
+            task.IsSuccessfull = taskResult.Brief == Abacus::ResultBrief::SUCCEEDED;
             task.Preview = task.IsSuccessfull ? "Ok. " : "Error. ";
 
             // Merge state variables

@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 #include <utility>
-#include <exception>
+#include <stdexcept>
 
 namespace Abacus
 {
@@ -48,36 +48,6 @@ namespace Abacus
         bool IsValid() const { return Type != Universal::Types::INVALID; }
         bool IsNumber() const { return Type == Universal::Types::INTEGER || Type == Universal::Types::REAL; }
 
-        template<class T>
-        const T& GetValue() const
-        {
-            static_assert(
-                        std::is_same<T, int>::value ||
-                        std::is_same<T, double>::value ||
-                        std::is_same<T, IntArray>::value ||
-                        std::is_same<T, RealArray>::value,
-                        "Invalid data type.");
-
-            if (std::is_same<T, int>::value && Universal::Types::INTEGER == Type)
-            {
-                return Integer;
-            }
-            else if (std::is_same<T, double>::value && Universal::Types::REAL == Type)
-            {
-                return Real;
-            }
-            else if (std::is_same<T, IntArray>::value && Universal::Types::INT_SEQUENCE == Type)
-            {
-                return IntSequence;
-            }
-            else if (std::is_same<T, RealArray>::value && Universal::Types::REAL_SEQUENCE == Type)
-            {
-                return RealSequence;
-            }
-
-            throw std::exception("Invalid call for GetValue().");
-        }
-        
         std::string ToString() const;
     };
     

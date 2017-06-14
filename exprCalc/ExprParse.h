@@ -2,6 +2,7 @@
 
 #include "ExprCalc.h"
 
+#include "Common.h"
 #include "MapParse.h"
 #include "BinaryStack.h"
 #include "ReduceParse.h"
@@ -14,10 +15,10 @@
 
 namespace Abacus
 {
+    using namespace tao::TAOCPP_PEGTL_NAMESPACE;
+
     namespace Expr
     {
-        using namespace tao::TAOCPP_PEGTL_NAMESPACE;
-        
         template<typename Input>
         bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, Universal& result);
         

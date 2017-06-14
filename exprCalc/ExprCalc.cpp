@@ -36,7 +36,7 @@ namespace Abacus
 
     ExecResult Execute(const std::string& statement, const State& variables, IsTerminating isTerminating)
     {
-        ExecResult execResult = { ResultBrief::TERMINATED, {}, {}};
+        ExecResult execResult = { ResultBrief::SUCCEEDED, /*{},*/ {}, {} };
 
         try
         {
@@ -56,13 +56,22 @@ namespace Abacus
                 execResult.Output.push_back("Syntax error");
             }
         }
+        // TODO: review and rework exception handling
+        catch (const TerminatedException& ex)
+        {
+            execResult.Brief = ResultBrief::TERMINATED;
+        }
         catch (const parse_error& err)
         {
+            execResult.Brief = ResultBrief::FAILED;
+
             execResult.Output.push_back(err.what());
             execResult.Output.push_back("Statement parsing failed.");
         }
         catch (const std::runtime_error& err)
         {
+            execResult.Brief = ResultBrief::FAILED;
+
             execResult.Output.push_back(err.what());
             execResult.Output.push_back("Statement execution failed.");
         }

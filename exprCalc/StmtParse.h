@@ -109,6 +109,8 @@ namespace Abacus
             star<space>, 
             one<'"'>> { };
             
+        struct PrintTextEnd : one<'"'> { };
+
         struct Text : seq< star<not_one<'"'>>, at<one<'"'>> > { };
         
         template<typename Rule>
@@ -147,13 +149,18 @@ namespace Abacus
                     throw parse_error("Invalid text value.", input);
                 }
 
+                if (!parse<PrintTextEnd>(input))
+                {
+                    throw parse_error("Syntax error.", input);
+                }
+
                 output.push_back(text);
                 
                 return true;
             }
         };
             
-        struct Statement : sor<Assignment, PrintExpr, PrintText>  { }; 
+        struct Statement : seq< sor<Assignment, PrintExpr, PrintText>, star< space > >  { };
         
         template<typename Input>
         bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, std::vector<std::string>& output, State& newVariables)

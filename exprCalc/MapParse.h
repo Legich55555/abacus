@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ExprCalc.h"
+#include "Common.h"
 #include "Universal.h"
 
 #include <tao/pegtl.hpp>
@@ -21,6 +22,8 @@ namespace Abacus
         bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, Universal& result);
     }
 
+    // TODO: introduce own class for exceptions. Catch all std::exceptions.
+
     namespace Map
     {
         struct MapBegin : seq< string<'m', 'a', 'p'>, star<space>, one<'('> > { };
@@ -40,14 +43,8 @@ namespace Abacus
             }
         };
         
-        struct JobResult
-        {
-            ResultBrief Brief;
-            std::vector<Error> Errors;
-        };
-
         template<typename IT, typename OT>
-        JobResult CalculateSubSequence(
+        void CalculateSubSequence(
             const char* inputCurr,
             size_t inputSize,
             IsTerminating isTerminating,
@@ -65,7 +62,8 @@ namespace Abacus
                     idx % TERMINATE_CHECK_PERIOD == 0 &&
                     isTerminating())
                 {
-                    return JobResult { ResultBrief::TERMINATED, { { "Terminated" }, { 0U } } };
+                    throw TerminatedException {};
+                    //return ParseResult { ResultBrief::TERMINATED, { } };
                 }
 
                 State lambdaParams = { {paramName, Universal(inputSequence[idx])} };
@@ -73,58 +71,53 @@ namespace Abacus
                 memory_input<> input(inputCurr, inputSize, "CalculateSubSequence");
                 
                 Universal callResult;
-                try
+                if (Expr::Parse(input, isTerminating, 1U, lambdaParams, callResult))
                 {
-                    if (Expr::Parse(input, isTerminating, 1U, lambdaParams, callResult))
-                    {
-                        outputSequence[idx] = callResult.GetValue<OT>();
-                    }
-                    else
-                    {
-                        return JobResult
-                        {
-                            ResultBrief::FAILED,
-                            { { "Map lambda execution error"}, {input.byte()} }
-                        };
-                    }
+                    outputSequence[idx] = GetNumber<OT>(callResult);
+                    //outputSequence[idx] = outputSequence[idx] + 1;
                 }
-                catch (const parse_error& err)
+                else
                 {
-                    return JobResult
-                    {
-                        ResultBrief::FAILED,
-                        { { "Map lambda execution error", err.what()}, err.positions }
-                    };
+                    throw parse_error("Map lambda execution error", input);
                 }
-                catch (const std::runtime_error& err)
-                {
-                    return JobResult
-                    {
-                        ResultBrief::FAILED,
-                        { { "Runtime error", err.what() }, { 0U } }
-                    };
-                }
-                catch (...)
-                {
-                    return JobResult
-                    {
-                        ResultBrief::FAILED,
-                        { { "Unnknown error" }, { 0U } }
-                    };
-                }
+
+//                try
+//                {
+//                    if (Expr::Parse(input, isTerminating, 1U, lambdaParams, callResult))
+//                    {
+//                        outputSequence[idx] = callResult.GetValue<OT>();
+//                    }
+//                    else
+//                    {
+//                        throw parse_error("Map lambda execution error", input);
+////                        return ParseResult
+////                        {
+////                            ResultBrief::FAILED, { { "Map lambda execution error", { input.position() } } }
+////                        };
+//                    }
+//                }
+//                catch (const parse_error& err)
+//                {
+//                    return ParseResult
+//                    {
+//                        ResultBrief::FAILED, { { err.what(), err.positions } }
+//                    };
+//                }
+//                catch (const std::runtime_error& err)
+//                {
+//                    return ParseResult
+//                    {
+//                        ResultBrief::FAILED, { { err.what(), { input.position() } } }
+//                    };
+//                }
             }
             
-            return JobResult
-            {
-                ResultBrief::SUCCEEDED,
-                { { }, { } }
-            };
+//            return ParseResult { ResultBrief::SUCCEEDED, { } };
         }
 
-        template<typename IT, typename OT>
-        JobResult CalculateSequence(
-            const char* inputCurr,
-            size_t inputSize,
+        template<typename Input, typename IT, typename OT>
+        void CalculateSequence(
+            const Input& input,
             IsTerminating isTerminating,
             unsigned threads,
             const std::string& paramName,
@@ -135,12 +128,15 @@ namespace Abacus
             
             const size_t MIN_JOB_SIZE = 1000U;
             
-            std::vector<std::future<JobResult>> jobs;
+            std::vector<std::future<void>> jobs;
             jobs.reserve(threads);
             
             size_t batchSize = inputSequence.size() / threads + 1U;
             batchSize = batchSize > MIN_JOB_SIZE ? batchSize : inputSequence.size();
             
+            const char* inputCurr = input.current();
+            size_t inputSize = input.size();
+
             for (size_t jobBeginIdx = 0; jobBeginIdx < inputSequence.size(); jobBeginIdx += batchSize)
             {
                 size_t jobEndIdx = std::min(jobBeginIdx + batchSize, inputSequence.size());
@@ -154,24 +150,52 @@ namespace Abacus
                 jobs.push_back(std::async(jobType, jobFunc));
             }
             
-            JobResult result = { ResultBrief::SUCCEEDED, { } };
+            bool isTerminated = false;
+            std::vector<parse_error> jobErrors;
             for (auto& job : jobs)
             {
-                const JobResult jobResult = job.get();
-
-                if (jobResult.Brief == ResultBrief::TERMINATED && result.Brief != ResultBrief::TERMINATED)
+                try
                 {
-                    result.Brief = ResultBrief::TERMINATED;
+                    job.get();
                 }
-                else if (jobResult.Brief == ResultBrief::FAILED && result.Brief != ResultBrief::FAILED)
+                catch (const TerminatedException& ex)
                 {
-                    result.Brief = ResultBrief::FAILED;
+                    isTerminated = true;
                 }
+                catch (const parse_error& err)
+                {
+                    jobErrors.push_back(err);
+                }
+                catch (const std::exception& err)
+                {
+                    jobErrors.push_back(parse_error(err.what(), input));
+                }
+//                const JobResult jobResult = job.get();
 
-                result.Errors.insert(result.Errors.end(), jobResult.Errors.cbegin(), jobResult.Errors.cend());
+//                // Result TERMINATED overrides FAILED because there is no way to link errors with source code
+//                // in case of execution termination.
+//                if (jobResult.Brief == ResultBrief::TERMINATED && result.Brief != ResultBrief::TERMINATED)
+//                {
+//                    result.Brief = ResultBrief::TERMINATED;
+//                    result.Errors.swap(jobResult.Errors);
+//                    break;
+//                }
+//                else if (jobResult.Brief == ResultBrief::FAILED && result.Brief != ResultBrief::FAILED)
+//                {
+//                    result.Brief = ResultBrief::FAILED;
+//                }
+
+//                result.Errors.insert(result.Errors.end(), jobResult.Errors.cbegin(), jobResult.Errors.cend());
             }
 
-            return result;
+            if (isTerminated)
+            {
+                throw TerminatedException { };
+            }
+            else if (!jobErrors.empty())
+            {
+                throw parse_error(jobErrors.front());
+            }
         }
 
         template< typename Input >
@@ -200,9 +224,10 @@ namespace Abacus
                 throw parse_error("Invalid lambda syntax.", input);
             }
 
-            // Backup position for concurrent run.
-            const char* inputCurr = input.current();
-            size_t inputSize = input.size();
+//            // Backup position for concurrent run.
+//            const char* inputCurr = input.current();
+//            size_t inputSize = input.size();
+            memory_input<> inputCopy(input.current(), input.size(), "CalculateSequence");
             
             // Calculate the first item of sequence
             Universal callResult;
@@ -216,13 +241,11 @@ namespace Abacus
                 throw parse_error("Runtime error in map() lambda. Result is not a number.", input);
             }  
             
-            JobResult calcResult = { ResultBrief::SUCCEEDED, { } };
             if (Universal::Types::INTEGER == callResult.Type)
             {
                 std::vector<int> intResult(0);
                 
-                calcResult = CalculateSequence(inputCurr, inputSize, isTerminating, threads,
-                                               lambdaParameter, firstValue.IntSequence, intResult);
+                CalculateSequence(inputCopy, isTerminating, threads, lambdaParameter, firstValue.IntSequence, intResult);
             
                 result = Universal(intResult);
             }
@@ -230,17 +253,11 @@ namespace Abacus
             {
                 std::vector<double> realResult(0);
                 
-                calcResult = CalculateSequence(inputCurr, inputSize, isTerminating, threads,
-                                               lambdaParameter, firstValue.IntSequence, realResult);
+                CalculateSequence(inputCopy, isTerminating, threads, lambdaParameter, firstValue.IntSequence, realResult);
             
                 result = Universal(realResult);
             }
             
-            if (!calcResult.Brief != ResultBrief::SUCCEEDED)
-            {
-                throw parse_error("Runtime error.", input);
-            }
-
             if (parse< pad< one<')'>, space> >(input) == false)
             {
                 throw parse_error("Invalid map() syntax - no closing round brace.", input);

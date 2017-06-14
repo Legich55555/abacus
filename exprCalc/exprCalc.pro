@@ -5,7 +5,8 @@ CONFIG+= staticlib
 SOURCES += ExprCalc.cpp \
     Universal.cpp
 
-HEADERS += ExprCalc.h \
+HEADERS += Common.h \
+    ExprCalc.h \
     Universal.h \
     StmtParse.h \
     ExprParse.h \

@@ -82,8 +82,8 @@ namespace Abacus
         /** @brief Brief result of execution */
         ResultBrief Brief;
 
-        /** @brief Errors happened during of execution */
-        std::vector<Error> Errors;
+//        /** @brief Errors happened during of execution */
+//        std::vector<Error> Errors;
 
         /** 
          * @brief Output generated during of execution

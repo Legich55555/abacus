@@ -76,7 +76,7 @@ unsigned CheckStatement(
     const Abacus::ExecResult& expectedResult)
 {
     Abacus::ExecResult result = Abacus::Execute(statement, variables, nullptr);
-    if (!result.Success)
+    if (result.Brief != Abacus::ResultBrief::SUCCEEDED)
     {
         std::cout << "FAILED test for \"" << statement << "\"" << std::endl;
         return 1U;
@@ -134,7 +134,7 @@ unsigned CheckProgramPi()
     for (const auto& statement : program)
     {
         Abacus::ExecResult result = Abacus::Execute(statement, variables, nullptr);
-        if (!result.Success)
+        if (result.Brief != Abacus::ResultBrief::SUCCEEDED)
         {
             std::cout << "FAILED test for program" << std::endl;
             return 1U;
@@ -154,13 +154,19 @@ int main()
     
     unsigned errorsNumber = 0;
 
+    errorsNumber += CheckStatement(
+        "print \"pi = \"",
+        { },
+        Abacus::ExecResult { Abacus::ResultBrief::SUCCEEDED, {"pi = "}, {} }
+    );
+
 
 
     errorsNumber += CheckStatement(
         "var b = map( {1, a},  x -> x + x) ",
         { {"a", Abacus::Universal(5)} },
         Abacus::ExecResult {
-                    true,
+                    Abacus::ResultBrief::SUCCEEDED,
                     {},
                     { {"b", Abacus::Universal(std::vector<int> {2, 4, 6, 8, 10} )} } }
     );
@@ -175,19 +181,19 @@ int main()
     errorsNumber += CheckStatement(
         "var a = 5",
         { },
-        Abacus::ExecResult { true, {}, {{"a", Abacus::Universal(5)}} }
+        Abacus::ExecResult { Abacus::ResultBrief::SUCCEEDED, {}, {{"a", Abacus::Universal(5)}} }
     );
     
     errorsNumber += CheckStatement(
         "print \"pi = \"",
         { },
-        Abacus::ExecResult { true, {"pi = "}, {} }
+        Abacus::ExecResult { Abacus::ResultBrief::SUCCEEDED, {"pi = "}, {} }
     );
     
     errorsNumber += CheckStatement(
         "out 2 + 2",
         { },
-        Abacus::ExecResult { true, {"4"}, {} }
+        Abacus::ExecResult { Abacus::ResultBrief::SUCCEEDED, {"4"}, {} }
     );
     
     errorsNumber += CheckExpression(
@@ -280,7 +286,7 @@ int main()
     errorsNumber += CheckStatement(
         "var a = 5",
         { },
-        Abacus::ExecResult { true, {}, {{"a", Abacus::Universal(5)}} }
+        Abacus::ExecResult { Abacus::ResultBrief::SUCCEEDED, {}, {{"a", Abacus::Universal(5)}} }
     );
     
     if (errorsNumber != 0)
