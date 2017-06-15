@@ -151,38 +151,11 @@ unsigned CheckProgramPi()
 
 int main()
 {
-    
+    static const double MAX_SLOP = 0.000001;
+
     unsigned errorsNumber = 0;
 
-    errorsNumber += CheckStatement(
-        "print \"pi = \"",
-        { },
-        Abacus::ExecResult { Abacus::ResultBrief::SUCCEEDED, {"pi = "}, {} }
-    );
-
-
-
-    errorsNumber += CheckStatement(
-        "var b = map( {1, a},  x -> x + x) ",
-        { {"a", Abacus::Universal(5)} },
-        Abacus::ExecResult {
-                    Abacus::ResultBrief::SUCCEEDED,
-                    {},
-                    { {"b", Abacus::Universal(std::vector<int> {2, 4, 6, 8, 10} )} } }
-    );
-
-    errorsNumber += CheckInvalidExpression(
-        "var a = b5",
-        { {"b", Abacus::Universal(1)} }
-    );
-
     errorsNumber += CheckProgramPi();
-    
-    errorsNumber += CheckStatement(
-        "var a = 5",
-        { },
-        Abacus::ExecResult { Abacus::ResultBrief::SUCCEEDED, {}, {{"a", Abacus::Universal(5)}} }
-    );
     
     errorsNumber += CheckStatement(
         "print \"pi = \"",
@@ -236,6 +209,11 @@ int main()
             {"b", Abacus::Universal(5)},            
         });
 
+    errorsNumber += CheckInvalidExpression(
+        "var a = b5",
+        { {"b", Abacus::Universal(1)} }
+    );
+
     errorsNumber += CheckExpression(
         "(a + b)",
         {
@@ -253,17 +231,18 @@ int main()
         },
         Abacus::Universal(0));
     
-    errorsNumber += CheckExpression(" 1.0", {}, Abacus::Universal(1.f));
-    errorsNumber += CheckExpression(" 1.0 ", {}, Abacus::Universal(1.f));
-    errorsNumber += CheckExpression("1.0 ", {}, Abacus::Universal(1.f));
-    errorsNumber += CheckExpression("1.0", {}, Abacus::Universal(1.f));
-    errorsNumber += CheckExpression("9.0", {},  Abacus::Universal(9.f));
-    errorsNumber += CheckExpression("-1.0", {},  Abacus::Universal(-1.f));
+    errorsNumber += CheckExpression(" 1.0", {}, Abacus::Universal(1.));
+    errorsNumber += CheckExpression(" 1.0 ", {}, Abacus::Universal(1.));
+    errorsNumber += CheckExpression("1.0 ", {}, Abacus::Universal(1.));
+    errorsNumber += CheckExpression("1.0", {}, Abacus::Universal(1.));
+    errorsNumber += CheckExpression("9.0", {},  Abacus::Universal(9.));
+    errorsNumber += CheckExpression("-1.0", {},  Abacus::Universal(-1.));
     errorsNumber += CheckExpression("+1.0", {}, Abacus::Universal(1.f));
-    errorsNumber += CheckExpression("-.1", {},  Abacus::Universal(-0.1f));
-    errorsNumber += CheckExpression("+.1", {},  Abacus::Universal(0.1f));
+    errorsNumber += CheckExpression("-.1", {},  Abacus::Universal(-0.1));
+    errorsNumber += CheckExpression("+.1", {},  Abacus::Universal(0.1));
     errorsNumber += CheckExpression("-1", {},  Abacus::Universal(-1));
-    errorsNumber += CheckExpression("-1.0", {},  Abacus::Universal(-1.f));
+    errorsNumber += CheckExpression("-1.0", {},  Abacus::Universal(-1.));
+    errorsNumber += CheckExpression("map({1, 2}, x -> x * 1.0)", {}, Abacus::Universal(std::vector<double>{1.0, 2.0}));
     errorsNumber += CheckExpression(" {  1 , 2 } ", {}, Abacus::Universal(std::vector<int>{1, 2}));
     errorsNumber += CheckExpression(" { 1,2 }", {}, Abacus::Universal(std::vector<int>{1, 2}));
     errorsNumber += CheckExpression("((1))", {},  Abacus::Universal(1));
@@ -288,7 +267,16 @@ int main()
         { },
         Abacus::ExecResult { Abacus::ResultBrief::SUCCEEDED, {}, {{"a", Abacus::Universal(5)}} }
     );
-    
+
+    errorsNumber += CheckStatement(
+        "var b = map( {1, a},  x -> x + x) ",
+        { {"a", Abacus::Universal(5)} },
+        Abacus::ExecResult {
+                    Abacus::ResultBrief::SUCCEEDED,
+                    {},
+                    { {"b", Abacus::Universal(std::vector<int> {2, 4, 6, 8, 10} )} } }
+    );
+
     if (errorsNumber != 0)
     {
         std::cout << "Failed " << errorsNumber << " tests." << std::endl;

@@ -174,10 +174,10 @@ namespace Abacus
                 > { };
         
         struct RoundBraces : seq< one<'('>, pad< Expression, space>, one<')'> > { };
-        
+
         template<typename Rule>
         struct Action : nothing<Rule> { };
-        
+
         template<>
         struct Action<Integer>
         {
@@ -213,7 +213,7 @@ namespace Abacus
 
                 try
                 {
-                    val = std::stof(strVal);
+                    val = std::stod(strVal);
                 }
                 catch (const std::exception& ex)
                 {
@@ -239,7 +239,7 @@ namespace Abacus
                     return;
                 }
                 
-                throw parse_error("Undefined variable", input);
+                throw parse_error(Print("Undefined variable: %s", strVal.c_str()), input);
             }
         };
         

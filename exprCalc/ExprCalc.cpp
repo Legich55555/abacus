@@ -57,7 +57,7 @@ namespace Abacus
             }
         }
         // TODO: review and rework exception handling
-        catch (const TerminatedException& ex)
+        catch (const TerminatedError& ex)
         {
             execResult.Brief = ResultBrief::TERMINATED;
         }
@@ -67,13 +67,6 @@ namespace Abacus
 
             execResult.Output.push_back(err.what());
             execResult.Output.push_back("Statement parsing failed.");
-        }
-        catch (const std::runtime_error& err)
-        {
-            execResult.Brief = ResultBrief::FAILED;
-
-            execResult.Output.push_back(err.what());
-            execResult.Output.push_back("Statement execution failed.");
         }
         
         return execResult; 

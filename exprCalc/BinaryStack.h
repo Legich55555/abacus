@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Common.h"
 #include "Universal.h"
 #include "ExprParse.h"
 
@@ -78,8 +79,9 @@ namespace Abacus
                 Universal result = op.Func(left, right);
                 m_values.push_back(result);
             }
-            catch (const std::runtime_error& err)
+            catch (const std::exception& err)
             {
+                // Throw own exception to provide position
                 throw parse_error(err.what(), op.Pos);
             }
         }

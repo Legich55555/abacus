@@ -60,7 +60,7 @@ namespace Abacus
                 Universal variableValue;
                 if (!Expr::Parse(input, isTerminating, threads, variables, variableValue))
                 {
-                    throw parse_error("Invalid expression.", input);
+                    throw parse_error("Syntax error.", input);
                 }
                 
                 newVariables[variableName] = variableValue;
@@ -94,7 +94,7 @@ namespace Abacus
                 Universal expressionValue;
                 if (!Expr::Parse(input, isTerminating, threads, variables, expressionValue))
                 {
-                    throw parse_error("Invalid expression.", input);
+                    throw parse_error("Syntax error.", input);
                 }
                 
                 output.push_back(expressionValue.ToString());

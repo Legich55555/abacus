@@ -17,7 +17,6 @@ public:
     ~MainWindow();
 
 private slots:
-    void on_executeButton_clicked(bool checked);
     void on_sourceEditor_cursorPositionChanged();
     void on_sourceEditor_textChanged();
 

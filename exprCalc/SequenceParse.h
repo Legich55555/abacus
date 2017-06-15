@@ -20,28 +20,22 @@ namespace Abacus
         template<typename Input>
         bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, Universal& result)
         {
-            if (!parse< one<'{'> >(input))
-            {
-                return false;
-            }
+            ExpectChar<'{'>(input);
 
             Universal firstValue;
+            if (!Expr::Parse(input, isTerminating, threads, variables, firstValue))
             {
-                if (!Expr::Parse(input, isTerminating, threads, variables, firstValue))
-                {
-                    throw parse_error("First sequence parameter is not valid.", input);
-                }
+                throw parse_error("Failed to parse first sequence parameter.", input);
+            }
 
-                if (firstValue.Type != Universal::Types::INTEGER)
-                {
-                    throw parse_error("First sequence parameter is not valid.", input);
-                }
-            }
-            
-            if (parse< seq< pad<one<','>, space> > >(input) == false)
+            if (firstValue.Type != Universal::Types::INTEGER)
             {
-                throw parse_error("Failed to parse sequence. There is no comma.", input);
+                throw parse_error(Print("First sequence parameter has wrong type. Value: %s",
+                                        firstValue.ToString().c_str()),
+                                  input);
             }
+
+            ExpectComma(input);
             
             Universal secondValue;
             {
@@ -56,10 +50,7 @@ namespace Abacus
                 }
             }
 
-            if (parse< seq< pad<one<'}'>, space> > >(input) == false)
-            {
-                throw parse_error("Failed to parse sequence. There is not closing brace.", input);
-            }
+            ExpectChar<'}'>(input);
 
             const int step = secondValue.Integer > firstValue.Integer ? 1 : -1;
             const int size = secondValue.Integer > firstValue.Integer ?

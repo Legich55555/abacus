@@ -22,32 +22,13 @@ namespace Abacus
         bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, Universal& result);
     }
 
-    // TODO: introduce own class for exceptions. Catch all std::exceptions.
-
     namespace Map
     {
-        struct MapBegin : seq< string<'m', 'a', 'p'>, star<space>, one<'('> > { };
-        
-        struct LambdaBegin : seq< pad< one<','>, space>, identifier, pad< string<'-','>' >, space> > { };
-        
-        template<typename Rule>
-        struct IdentifierAction : nothing<Rule> { };
-            
-        template<>
-        struct IdentifierAction<identifier>
-        {
-            template< typename Input >
-            static void apply(const Input& in, std::string& lambdaParameter)
-            {
-                lambdaParameter = in.string();
-            }
-        };
-        
         template<typename IT, typename OT>
         void CalculateSubSequence(
             const char* inputCurr,
-            size_t inputSize,
-            IsTerminating isTerminating,
+            const size_t inputSize,
+            const IsTerminating& isTerminating,
             const std::string& paramName,
             const std::vector<IT>& inputSequence,
             const size_t beginIdx,
@@ -62,7 +43,7 @@ namespace Abacus
                     idx % TERMINATE_CHECK_PERIOD == 0 &&
                     isTerminating())
                 {
-                    throw TerminatedException {};
+                    throw TerminatedError {};
                 }
 
                 State lambdaParams = { {paramName, Universal(inputSequence[idx])} };
@@ -76,7 +57,9 @@ namespace Abacus
                 }
                 else
                 {
-                    throw parse_error("Map lambda execution error", input);
+                    throw parse_error(Print("Runtime error in lambda. Param: %s, Value: %s",
+                                            paramName.c_str(), lambdaParams.cbegin()->second.ToString().c_str()),
+                                      input);
                 }
             }
         }
@@ -84,15 +67,15 @@ namespace Abacus
         template<typename Input, typename IT, typename OT>
         void CalculateSequence(
             const Input& input,
-            IsTerminating isTerminating,
-            unsigned threads,
+            const IsTerminating& isTerminating,
+            const unsigned threads,
             const std::string& paramName,
-            std::vector<IT>& inputSequence,
+            const std::vector<IT>& inputSequence,
             std::vector<OT>& outputSequence)
         {
             outputSequence.resize(inputSequence.size());
             
-            const size_t MIN_JOB_SIZE = 1000U;
+            static const size_t MIN_JOB_SIZE = 1000U;
             
             std::vector<std::future<void>> jobs;
             jobs.reserve(threads);
@@ -107,7 +90,8 @@ namespace Abacus
             {
                 size_t jobEndIdx = std::min(jobBeginIdx + batchSize, inputSequence.size());
                 
-                std::launch jobType = jobBeginIdx != 1U ? 
+                // The first job should be defered, other should be async
+                std::launch jobType = jobBeginIdx != 0U ?
                     std::launch::async : std::launch::deferred;
 
                 auto jobFunc = std::bind(CalculateSubSequence<IT, OT>,
@@ -124,7 +108,7 @@ namespace Abacus
                 {
                     job.get();
                 }
-                catch (const TerminatedException& ex)
+                catch (const TerminatedError& ex)
                 {
                     isTerminated = true;
                 }
@@ -132,15 +116,11 @@ namespace Abacus
                 {
                     jobErrors.push_back(err);
                 }
-                catch (const std::exception& err)
-                {
-                    jobErrors.push_back(parse_error(err.what(), input));
-                }
             }
 
             if (isTerminated)
             {
-                throw TerminatedException { };
+                throw TerminatedError { };
             }
             else if (!jobErrors.empty())
             {
@@ -148,9 +128,36 @@ namespace Abacus
             }
         }
 
+        template<typename Input, typename OT>
+        void CalculateSequence(
+            const Input& input,
+            const IsTerminating& isTerminating,
+            const unsigned threads,
+            const std::string& paramName,
+            const Universal& inputSequence,
+            std::vector<OT>& outputSequence)
+        {
+            if (Universal::Types::INT_SEQUENCE == inputSequence.Type)
+            {
+                CalculateSequence(input, isTerminating, threads, paramName, inputSequence.IntSequence, outputSequence);
+            }
+            else if (Universal::Types::REAL_SEQUENCE == inputSequence.Type)
+            {
+                CalculateSequence(input, isTerminating, threads, paramName, inputSequence.RealSequence, outputSequence);
+            }
+            else
+            {
+                throw parse_error(Print("Internal runtimw error. Expected sequence type but got %s",
+                                        inputSequence.ToString().c_str()),
+                                  input);
+            }
+        }
+
         template< typename Input >
         bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, Universal& result)
         {
+            struct MapBegin : seq< string<'m', 'a', 'p'>, star<space>, one<'('> > { };
+
             if (parse<MapBegin>(input) == false)
             {
                 return false;
@@ -159,24 +166,21 @@ namespace Abacus
             Universal firstValue;
             if (!Expr::Parse(input, isTerminating, threads, variables, firstValue))
             {
-                throw parse_error("First map() parameter is not valid.", input);
-            }
-            if (firstValue.Type != Universal::Types::INT_SEQUENCE ||
-                firstValue.IntSequence.empty())
-            {
-                // TODO: add support for real number sequences.
-                throw parse_error("First map() parameter is not valid integer sequence.", input);
-            }
-            
-            std::string lambdaParameter;
-            if (parse<LambdaBegin, IdentifierAction>(input, lambdaParameter) == false)
-            {
-                throw parse_error("Invalid lambda syntax.", input);
+                throw parse_error("Failed to parse first map() parameter.", input);
             }
 
-//            // Backup position for concurrent run.
-//            const char* inputCurr = input.current();
-//            size_t inputSize = input.size();
+            if (!((firstValue.Type == Universal::Types::INT_SEQUENCE && !firstValue.IntSequence.empty()) ||
+                  (firstValue.Type == Universal::Types::REAL_SEQUENCE && !firstValue.RealSequence.empty())))
+            {
+                throw parse_error(Print("First map() parameter is not sequence. Param: %s",
+                                        firstValue.ToString().c_str()),
+                                  input);
+            }
+
+            ExpectComma(input);
+            std::string lambdaParameter = ExpectIdentifier(input);
+            ExpectArrow(input);
+
             memory_input<> inputCopy(input.current(), input.size(), "CalculateSequence");
             
             // Calculate the first item of sequence
@@ -184,18 +188,20 @@ namespace Abacus
             State lambdaParams = { { lambdaParameter, Universal(firstValue.IntSequence.front()) } };
             if (!Expr::Parse(input, isTerminating, threads, lambdaParams, callResult))
             {
-                throw parse_error("Invalid lambda syntax.", input);
+                throw parse_error("Invalid lambda.", input);
             }
             if (!callResult.IsNumber())
             {                    
-                throw parse_error("Runtime error in map() lambda. Result is not a number.", input);
-            }  
-            
+                throw parse_error(Print("Runtime error in map() lambda. Expected number but labmda returned %s.",
+                                        callResult.ToString().c_str()),
+                                  input);
+            }
+
             if (Universal::Types::INTEGER == callResult.Type)
             {
                 std::vector<int> intResult(0);
-                
-                CalculateSequence(inputCopy, isTerminating, threads, lambdaParameter, firstValue.IntSequence, intResult);
+
+                CalculateSequence(inputCopy, isTerminating, threads, lambdaParameter, firstValue, intResult);
             
                 result = Universal(intResult);
             }
@@ -203,15 +209,12 @@ namespace Abacus
             {
                 std::vector<double> realResult(0);
                 
-                CalculateSequence(inputCopy, isTerminating, threads, lambdaParameter, firstValue.IntSequence, realResult);
+                CalculateSequence(inputCopy, isTerminating, threads, lambdaParameter, firstValue, realResult);
             
                 result = Universal(realResult);
             }
-            
-            if (parse< pad< one<')'>, space> >(input) == false)
-            {
-                throw parse_error("Invalid map() syntax - no closing round brace.", input);
-            }
+
+            ExpectClosingBracket(input);
             
             return true;
         }

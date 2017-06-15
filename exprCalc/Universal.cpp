@@ -3,8 +3,13 @@
 #include <cmath>
 #include <sstream>
 
+#include <tao/pegtl.hpp>
+
 namespace Abacus
 {
+
+using tao::TAOCPP_PEGTL_NAMESPACE::parse_error;
+
 
 Universal::Universal(const Universal& other)
     : Type(Types::INVALID)
@@ -85,7 +90,7 @@ std::string Universal::ToString() const
         return std::string("Invalid");
     }
 
-    throw std::runtime_error("Runtime error: unexpected workflow.");
+    throw parse_error("Runtime error: unexpected workflow.", {});
 }
 
 Universal Mul(const Universal& l, const Universal& r)
@@ -113,7 +118,7 @@ Universal Mul(const Universal& l, const Universal& r)
         }
     }
 
-    throw std::runtime_error("Runtime error: unexpected workflow.");
+    throw parse_error("Runtime error: unexpected workflow.", {});
 }
 
 Universal Add(const Universal& l, const Universal& r)
@@ -141,7 +146,7 @@ Universal Add(const Universal& l, const Universal& r)
         }
     }
 
-    throw std::runtime_error("Runtime error: unexpected workflow.");
+    throw parse_error("Runtime error: unexpected workflow.", {});
 }
 
 Universal Sub(const Universal& l, const Universal& r)
@@ -169,7 +174,7 @@ Universal Sub(const Universal& l, const Universal& r)
         }
     }
 
-    throw std::runtime_error("Runtime error: unexpected workflow.");
+    throw parse_error("Runtime error: unexpected workflow.", {});
 }
 
 Universal Div(const Universal& l, const Universal& r)
@@ -202,7 +207,7 @@ Universal Div(const Universal& l, const Universal& r)
         }
     }
 
-    throw std::runtime_error("Runtime error: unexpected workflow.");
+    throw parse_error("Runtime error: unexpected workflow.", {});
 }
 
 Universal Pow(const Universal& l, const Universal& r)
@@ -240,7 +245,7 @@ Universal Pow(const Universal& l, const Universal& r)
         }
     }
 
-    throw std::runtime_error("Runtime error: unexpected workflow.");
+    throw parse_error("Runtime error: unexpected workflow.", {});
 }
 
 bool operator==(const Universal& l, const Universal& r)
@@ -275,12 +280,11 @@ bool operator==(const Universal& l, const Universal& r)
         return l.RealSequence == r.RealSequence;
     }
 
-    throw std::runtime_error("Runtime error: unexpected workflow.");
+    throw parse_error("Runtime error: unexpected workflow.", {});
 }
 
 bool operator!=(const Universal& l, const Universal& r)
 {
     return !(l == r);
 }
-
 }

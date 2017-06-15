@@ -23,11 +23,6 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::on_executeButton_clicked(bool /*checked*/)
-{
-
-}
-
 void MainWindow::on_sourceEditor_cursorPositionChanged()
 {
 }

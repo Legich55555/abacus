@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Common.h"
 #include "Universal.h"
 
 #include <tao/pegtl.hpp>
@@ -17,26 +18,11 @@ namespace Abacus
 
     namespace Reduce
     {
-        struct ReduceBegin : seq<string< 'r', 'e', 'd', 'u', 'c', 'e' >, star<space>, one<'('> > { };
-        
-        struct LambdaBegin : seq< star< space>, identifier, star<space>, identifier, pad< string<'-','>' >, space> > { };
-        
-        template<typename Rule>
-        struct IdentifierAction : nothing<Rule> { };
-            
-        template<>
-        struct IdentifierAction<identifier>
-        {
-            template< typename Input >
-            static void apply(const Input& in, std::vector<std::string>& lambdaParameters)
-            {
-                lambdaParameters.push_back(in.string());
-            }
-        };
-        
         template< typename Input >
         bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, Universal& result)
         {
+            struct ReduceBegin : seq<string< 'r', 'e', 'd', 'u', 'c', 'e' >, star<space>, one<'('> > { };
+
             if (parse<ReduceBegin>(input) == false)
             {
                 return false;
@@ -53,31 +39,24 @@ namespace Abacus
                 throw parse_error("First reduce() parameter is not valid.", input);
             }
             
-            if (parse< seq< pad<one<','>, space> > >(input) == false)
-            {
-                throw parse_error("Failed to parse reduce()", input);
-            }
+            ExpectComma(input);
 
             Universal secondValue;
             if (!Expr::Parse(input, isTerminating, threads, variables, secondValue))
             {
-                throw parse_error("Second reduce() parameter is not valid.", input);
+                throw parse_error("Failed to parse the second reduce() parameter.", input);
             }
             if (!secondValue.IsNumber())
             {
-                throw parse_error("Second reduce() parameter is not valid.", input);
+                throw parse_error(Print("Second reduce() parameter is must be a number but actual value is %s.",
+                                        secondValue.ToString().c_str()),
+                                  input);
             }
             
-            if (parse< seq< pad<one<','>, space> > >(input) == false)
-            {
-                throw parse_error("Failed to parse reduce()", input);
-            }
-
-            std::vector<std::string> lambdaParameters;
-            if (parse<LambdaBegin, IdentifierAction>(input, lambdaParameters) == false)
-            {
-                throw parse_error("Invalid lambda syntax.", input);
-            }
+            ExpectComma(input);
+            std::string firstParam = ExpectIdentifier(input);
+            std::string secondParam = ExpectIdentifier(input);
+            ExpectArrow(input);
             
             // Backup position for concurrent/multiple run.
             const char* inputCurr = input.current();
@@ -100,8 +79,8 @@ namespace Abacus
                     
                     State lambdaParams = 
                     { 
-                        {lambdaParameters[0], intermediateValue},
-                        {lambdaParameters[1], Universal(firstValue.IntSequence[idx])}
+                        {firstParam, intermediateValue},
+                        {secondParam, Universal(firstValue.IntSequence[idx])}
                     };
                     
                     Universal lambdaResult;
@@ -127,8 +106,8 @@ namespace Abacus
                     
                     State lambdaParams = 
                     { 
-                        {lambdaParameters[0], intermediateValue},
-                        {lambdaParameters[1], Universal(firstValue.RealSequence[idx])}
+                        {firstParam, intermediateValue},
+                        {secondParam, Universal(firstValue.RealSequence[idx])}
                     };
                     
                     Universal lambdaResult;
@@ -146,10 +125,7 @@ namespace Abacus
 
             }
             
-            if (parse< pad< one<')'>, space> >(input) == false)
-            {
-                throw parse_error("Invalid map() syntax - no closing round brace.", input);
-            }
+            ExpectClosingBracket(input);
             
             result = intermediateValue;
 
