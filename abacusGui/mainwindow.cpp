@@ -23,10 +23,6 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::on_sourceEditor_cursorPositionChanged()
-{
-}
-
 void MainWindow::on_sourceEditor_textChanged()
 {
     const int changedBlockIdx = ui->sourceEditor->textCursor().blockNumber();
@@ -138,7 +134,7 @@ void MainWindow::setTaskStatus(unsigned taskIdx, const QString taskResult)
 
 void MainWindow::on_actionOpen_triggered()
 {
-    QString filename = QFileDialog::getOpenFileName(this, "Open file", "", "Abacus files (*.abacus)");
+    QString filename = QFileDialog::getOpenFileName(this, "Open file", "", "Abacus files (*.abacus);; Any file (*)");
     if (filename.length() == 0)
     {
         return;
@@ -163,10 +159,15 @@ void MainWindow::on_actionOpen_triggered()
 
 void MainWindow::on_actionSave_triggered()
 {
-    QString filename = QFileDialog::getSaveFileName(this, "Save file", "", "Abacus files (*.abacus)");
+    QString filename = QFileDialog::getSaveFileName(this, "Save file", "", "Abacus files (*.abacus)", nullptr);
     if (filename.length() == 0)
     {
         return;
+    }
+
+    if (!filename.endsWith(".abacus"))
+    {
+        filename += ".abacus";
     }
 
     QFile f(filename);

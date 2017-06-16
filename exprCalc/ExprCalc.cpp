@@ -53,7 +53,8 @@ namespace Abacus
             }
             else
             {
-                execResult.Output.push_back("Syntax error");
+                execResult.Brief = ResultBrief::FAILED;
+                execResult.Output.push_back("Internal error.");
             }
         }
         // TODO: review and rework exception handling

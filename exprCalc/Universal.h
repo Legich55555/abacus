@@ -10,7 +10,7 @@ namespace Abacus
     // TODO: optimize Universal (move semantic and minimize its size).
     struct Universal
     {
-        enum class Types 
+        enum class Types : unsigned
         {
             INVALID,
             INTEGER,
@@ -34,13 +34,19 @@ namespace Abacus
         
         Universal() : Type(Types::INVALID) { }
         
+        Universal(Universal&& other);
         Universal(const Universal& other);
+
         Universal& operator=(const Universal& other);
-        
+        Universal& operator=(Universal&& other);
+
         explicit Universal(int v) : Type(Types::INTEGER), Integer(v) {}
         explicit Universal(double v) : Type(Types::REAL), Real(v) {}
+
         explicit Universal(IntArray&& sequence) : Type(Types::INT_SEQUENCE), IntSequence(std::move(sequence)) {}
         explicit Universal(const IntArray& sequence) : Type(Types::INT_SEQUENCE), IntSequence(sequence) {}
+
+        explicit Universal(RealArray&& sequence) : Type(Types::REAL_SEQUENCE), RealSequence(std::move(sequence)) {}
         explicit Universal(const RealArray& sequence) : Type(Types::REAL_SEQUENCE), RealSequence(sequence) {}
         
         ~Universal();

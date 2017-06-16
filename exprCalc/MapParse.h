@@ -147,10 +147,41 @@ namespace Abacus
             }
             else
             {
-                throw parse_error(Print("Internal runtimw error. Expected sequence type but got %s",
+                throw parse_error(Print("Internal runtime error. Expected sequence type but got %s",
                                         inputSequence.ToString().c_str()),
                                   input);
             }
+        }
+
+        template<typename Input>
+        Universal CalculateSequence(
+            const Input& input,
+            const IsTerminating& isTerminating,
+            const unsigned threads,
+            const std::string& paramName,
+            const Universal& inputSequence,
+            const Universal::Types expectedType)
+        {
+            Universal result;
+
+            if (Universal::Types::INTEGER == expectedType)
+            {
+                std::vector<int> intResult(0);
+
+                CalculateSequence(input, isTerminating, threads, paramName, inputSequence, intResult);
+
+                result = std::move(Universal(std::move(intResult)));
+            }
+            else
+            {
+                std::vector<double> realResult(0);
+
+                CalculateSequence(input, isTerminating, threads, paramName, inputSequence, realResult);
+
+                result = std::move(Universal(std::move(realResult)));
+            }
+
+            return result;
         }
 
         template< typename Input >
@@ -197,22 +228,7 @@ namespace Abacus
                                   input);
             }
 
-            if (Universal::Types::INTEGER == callResult.Type)
-            {
-                std::vector<int> intResult(0);
-
-                CalculateSequence(inputCopy, isTerminating, threads, lambdaParameter, firstValue, intResult);
-            
-                result = Universal(intResult);
-            }
-            else
-            {
-                std::vector<double> realResult(0);
-                
-                CalculateSequence(inputCopy, isTerminating, threads, lambdaParameter, firstValue, realResult);
-            
-                result = Universal(realResult);
-            }
+            result = std::move(CalculateSequence(inputCopy, isTerminating, threads, lambdaParameter, firstValue, callResult.Type));
 
             ExpectClosingBracket(input);
             

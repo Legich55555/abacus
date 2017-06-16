@@ -22,7 +22,6 @@ public:
     ~ExecQueue();
 
     void AddBatch(const std::vector<QString>& batch, unsigned firstTaskIdx);
-    void CancelTasks(unsigned fromTaskIdx);
 
     ExecQueue(const ExecQueue&) = delete;
     ExecQueue& operator=(ExecQueue&) = delete;

@@ -42,7 +42,6 @@ void ExecQueue::AddBatch(const std::vector<QString>& batch, unsigned firstTaskId
         {
             m_waitingTasks.push_back(TaskPtr(new Task { false, i + firstTaskIdx, batch[i], {}, {}, {}}));
         }
-
     }
 
     m_wakeup.notify_one();
@@ -50,17 +49,14 @@ void ExecQueue::AddBatch(const std::vector<QString>& batch, unsigned firstTaskId
     emit BatchQueued(firstTaskIdx, static_cast<unsigned>(batch.size()));
 }
 
-void ExecQueue::CancelTasks(unsigned fromTaskIdx)
-{
-    std::lock_guard<std::mutex> lock(m_mtx);
-    CancelTasksImpl(fromTaskIdx);
-}
-
 void ExecQueue::ExecLoop()
 {
+    auto isCancelling = std::bind(&ExecQueue::IsCancelling, this);
+
     while (!m_destroying)
     {
         TaskPtr currTask;
+        Abacus::State state;
 
         {
             std::unique_lock<std::mutex> lock(m_mtx);
@@ -70,6 +66,9 @@ void ExecQueue::ExecLoop()
                 currTask = std::move(m_waitingTasks.front());
                 m_waitingTasks.pop_front();
                 m_cancellingCurrentTask = false;
+
+                state = m_doneTasks.empty() ?
+                            Abacus::State() : m_doneTasks.back().get()->State;
             }
             else
             {
@@ -79,12 +78,7 @@ void ExecQueue::ExecLoop()
 
         if (currTask != nullptr)
         {
-            Abacus::State state = m_doneTasks.empty() ?
-                        Abacus::State() : m_doneTasks.back().get()->State;
-
             Task& task = *currTask.get();
-
-            auto isCancelling = std::bind(&ExecQueue::IsCancelling, this);
 
             Abacus::ExecResult taskResult = Abacus::Execute(task.Statement.toStdString(), state, isCancelling);
             task.IsSuccessfull = taskResult.Brief == Abacus::ResultBrief::SUCCEEDED;
@@ -119,26 +113,28 @@ void ExecQueue::ExecLoop()
                 }
             }
 
-            if (!m_cancellingCurrentTask)
             {
                 std::lock_guard<std::mutex> lock(m_mtx);
 
-                m_doneTasks.push_back(std::move(currTask));
-
-                emit TaskDone(task.Idx, task.IsSuccessfull, task.Statement, task.Preview);
-
-                if (m_waitingTasks.empty())
+                if (!m_cancellingCurrentTask)
                 {
-                    QString allOutput;
-                    for (const auto& task : m_doneTasks)
-                    {
-                        if (task.get()->IsSuccessfull)
-                        {
-                            allOutput.append(task.get()->Output);
-                        }
-                    }
+                    m_doneTasks.push_back(std::move(currTask));
 
-                    emit AllDone(allOutput);
+                    emit TaskDone(task.Idx, task.IsSuccessfull, task.Statement, task.Preview);
+
+                    if (m_waitingTasks.empty())
+                    {
+                        QString allOutput;
+                        for (const auto& task : m_doneTasks)
+                        {
+                            if (task.get()->IsSuccessfull)
+                            {
+                                allOutput.append(task.get()->Output);
+                            }
+                        }
+
+                        emit AllDone(allOutput);
+                    }
                 }
             }
         }
@@ -155,11 +151,15 @@ void ExecQueue::CancelTasksImpl(unsigned fromTaskIdx)
         m_waitingTasks.pop_back();
     }
 
-    if ((0 == fromTaskIdx) ||
-        ((m_doneTasks.size() - fromTaskIdx) == 0))
+    if (m_doneTasks.size() >= fromTaskIdx)
     {
-        qInfo("Cancelled current task %d", fromTaskIdx);
+        qInfo("Cancelled current task %u", fromTaskIdx);
         m_cancellingCurrentTask = true;
+    }
+    else
+    {
+        qInfo("Current task is kept. Done size: %u, fromIdx: %u",
+              static_cast<unsigned>(m_doneTasks.size()), fromTaskIdx);
     }
 
     while (!m_doneTasks.empty() && m_doneTasks.back()->Idx >= fromTaskIdx)

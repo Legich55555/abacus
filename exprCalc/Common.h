@@ -109,7 +109,8 @@ const T& GetValue(const Universal& u)
     }
 
     throw parse_error(
-                Print("Internal error: invalid call for GetValue(). Requested: %s, actual: %d", typeid(T).name(), u.Type),
+                Print("Internal error: invalid call for GetValue(). Requested: %s, actual: %u",
+                      typeid(T).name(), static_cast<unsigned>(u.Type)),
                 { });
 }
 
@@ -130,9 +131,9 @@ T GetNumber(const Universal& u)
         return u.Real;
     }
 
-    throw parse_error(
-                Print("Internal error: invalid call for GetNumber(). Requested: %s, actual: %d", typeid(T).name(), u.Type),
-                { });
+    throw parse_error(Print("Internal error: invalid call for GetNumber(). Requested: %s, actual: %u",
+                            typeid(T).name(), static_cast<unsigned>(u.Type)),
+                      { });
 }
 
 }

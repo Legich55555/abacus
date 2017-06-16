@@ -17,7 +17,6 @@ public:
     ~MainWindow();
 
 private slots:
-    void on_sourceEditor_cursorPositionChanged();
     void on_sourceEditor_textChanged();
 
     void on_allDone(const QString& output);

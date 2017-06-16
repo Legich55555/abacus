@@ -60,7 +60,7 @@ namespace Abacus
                 Universal variableValue;
                 if (!Expr::Parse(input, isTerminating, threads, variables, variableValue))
                 {
-                    throw parse_error("Syntax error.", input);
+                    throw parse_error("Syntax error. Expected expression.", input);
                 }
                 
                 newVariables[variableName] = variableValue;
@@ -171,7 +171,7 @@ namespace Abacus
                 return true;
             }
 
-            return false;
+            throw parse_error("Syntax error.", input);
         }
     }   
 }

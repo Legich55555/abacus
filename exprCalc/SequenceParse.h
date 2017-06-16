@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Common.h"
 #include "Universal.h"
 
 #include <tao/pegtl.hpp>
@@ -20,7 +21,10 @@ namespace Abacus
         template<typename Input>
         bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, Universal& result)
         {
-            ExpectChar<'{'>(input);
+            if (!parse< seq< one<'{'>, star<space> > >(input))
+            {
+                return false;
+            }
 
             Universal firstValue;
             if (!Expr::Parse(input, isTerminating, threads, variables, firstValue))
@@ -53,14 +57,31 @@ namespace Abacus
             ExpectChar<'}'>(input);
 
             const int step = secondValue.Integer > firstValue.Integer ? 1 : -1;
-            const int size = secondValue.Integer > firstValue.Integer ?
-                        secondValue.Integer - firstValue.Integer + 1 : firstValue.Integer - secondValue.Integer + 1;
+            const size_t size = static_cast<unsigned>(secondValue.Integer > firstValue.Integer ?
+                        secondValue.Integer - firstValue.Integer + 1 : firstValue.Integer - secondValue.Integer + 1);
+
+            static const size_t MAX_SEQUENCE_SIZE = 2000000U;
+
+            if (size > MAX_SEQUENCE_SIZE)
+            {
+                throw parse_error(Print("Runtime error. Sequence exceeded maximal possible length. Max: %u, Requested: %u.",                                         static_cast<unsigned>(MAX_SEQUENCE_SIZE), static_cast<unsigned>(size)),
+                                  input);
+            }
 
             std::vector<int> sequence;
             sequence.reserve(static_cast<size_t>(size));
 
+            static const unsigned TERMINATE_CHECK_PERIOD = 1000U;
+
             for (int i = firstValue.Integer; i != secondValue.Integer; i += step)
             {
+                if (isTerminating != nullptr &&
+                    i % TERMINATE_CHECK_PERIOD &&
+                    isTerminating())
+                {
+                    throw TerminatedError {};
+                }
+
                 sequence.push_back(i);
             }
 
