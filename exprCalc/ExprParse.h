@@ -84,7 +84,7 @@ namespace Abacus
                 {
                     const BinaryOperatorDef& opDef = opDefIt->second;
 
-                    stacks.PushOperator(BinaryOperator {opDef.Priority, opDef.Func, input.position() } );
+                    stacks.PushOperator(BinaryOperator { opDef.Priority, opDef.Func, input.position() } );
 
                     input.bump(1U);
                     
