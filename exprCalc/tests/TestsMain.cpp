@@ -1,6 +1,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <memory>
 
 #include "exprCalc/ExprCalc.h"
 
@@ -151,7 +152,12 @@ unsigned CheckProgramPi()
 
 int main()
 {
-    static const double MAX_SLOP = 0.000001;
+    size_t ups = sizeof(std::unique_ptr<std::vector<int>>);
+    size_t us = sizeof(Abacus::Universal);
+    size_t ivs = sizeof(std::vector<int>);
+    size_t dvs = sizeof(std::vector<double>);
+
+    static const double MAX_SLOP = 0.0005;
 
     unsigned errorsNumber = 0;
 
@@ -173,19 +179,19 @@ int main()
         " 4 * reduce( map({0, 50000}, i -> (-1.0)^i / (2.0 * i + 1)), 0, x y -> x + y )",
         {},
         3.1415,
-        0.005);
+        MAX_SLOP);
     
     errorsNumber += CheckExpression(
-        " 4 * reduce( map({0, 1111}, i -> (-1.0)^i / (2.0 * i + 1)), 0, x y -> x + y )",
+        " 4 * reduce( map({0, 3111}, i -> (-1.0)^i / (2.0 * i + 1)), 0, x y -> x + y )",
         {},
         3.1415,
-        0.005);
+        MAX_SLOP);
     
     errorsNumber += CheckExpression(
-        " 4 * reduce( map({0, 500}, i -> (-1.0)^i / (2 * i + 1)), 0, x y -> x + y )",
+        " 4 * reduce( map({0, 5000}, i -> (-1.0)^i / (2 * i + 1)), 0, x y -> x + y )",
         {},
         3.1415,
-        0.005);
+        MAX_SLOP);
     
     errorsNumber += CheckExpression(
         " map({1, 5}, x->x * x )",

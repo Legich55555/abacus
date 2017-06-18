@@ -10,7 +10,7 @@ namespace Abacus
     // TODO: optimize Universal (move semantic and minimize its size).
     struct Universal
     {
-        enum class Types : unsigned
+        enum class Types : unsigned char
         {
             INVALID,
             INTEGER,

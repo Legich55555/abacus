@@ -25,7 +25,7 @@ namespace Abacus
     namespace Map
     {
         template<typename IT, typename OT>
-        void CalculateSubSequence(
+        void MapSubSequence(
             const char* inputCurr,
             const size_t inputSize,
             const IsTerminating& isTerminating,
@@ -48,7 +48,7 @@ namespace Abacus
 
                 State lambdaParams = { {paramName, Universal(inputSequence[idx])} };
 
-                memory_input<> input(inputCurr, inputSize, "CalculateSubSequence");
+                memory_input<> input(inputCurr, inputSize, "MapSubSequence");
                 
                 Universal callResult;
                 if (Expr::Parse(input, isTerminating, 1U, lambdaParams, callResult))
@@ -65,7 +65,7 @@ namespace Abacus
         }
 
         template<typename Input, typename IT, typename OT>
-        void CalculateSequence(
+        void MapSequence(
             const Input& input,
             const IsTerminating& isTerminating,
             const unsigned threads,
@@ -94,7 +94,7 @@ namespace Abacus
                 std::launch jobType = jobBeginIdx != 0U ?
                     std::launch::async : std::launch::deferred;
 
-                auto jobFunc = std::bind(CalculateSubSequence<IT, OT>,
+                auto jobFunc = std::bind(MapSubSequence<IT, OT>,
                         inputCurr, inputSize, isTerminating, std::ref(paramName), std::ref(inputSequence), jobBeginIdx, jobEndIdx, std::ref(outputSequence));
                 
                 jobs.push_back(std::async(jobType, jobFunc));
@@ -129,7 +129,7 @@ namespace Abacus
         }
 
         template<typename Input, typename OT>
-        void CalculateSequence(
+        void MapSequence(
             const Input& input,
             const IsTerminating& isTerminating,
             const unsigned threads,
@@ -139,11 +139,11 @@ namespace Abacus
         {
             if (Universal::Types::INT_SEQUENCE == inputSequence.Type)
             {
-                CalculateSequence(input, isTerminating, threads, paramName, inputSequence.IntSequence, outputSequence);
+                MapSequence(input, isTerminating, threads, paramName, inputSequence.IntSequence, outputSequence);
             }
             else if (Universal::Types::REAL_SEQUENCE == inputSequence.Type)
             {
-                CalculateSequence(input, isTerminating, threads, paramName, inputSequence.RealSequence, outputSequence);
+                MapSequence(input, isTerminating, threads, paramName, inputSequence.RealSequence, outputSequence);
             }
             else
             {
@@ -154,7 +154,7 @@ namespace Abacus
         }
 
         template<typename Input>
-        Universal CalculateSequence(
+        Universal MapSequence(
             const Input& input,
             const IsTerminating& isTerminating,
             const unsigned threads,
@@ -168,7 +168,7 @@ namespace Abacus
             {
                 std::vector<int> intResult(0);
 
-                CalculateSequence(input, isTerminating, threads, paramName, inputSequence, intResult);
+                MapSequence(input, isTerminating, threads, paramName, inputSequence, intResult);
 
                 result = std::move(Universal(std::move(intResult)));
             }
@@ -176,7 +176,7 @@ namespace Abacus
             {
                 std::vector<double> realResult(0);
 
-                CalculateSequence(input, isTerminating, threads, paramName, inputSequence, realResult);
+                MapSequence(input, isTerminating, threads, paramName, inputSequence, realResult);
 
                 result = std::move(Universal(std::move(realResult)));
             }
@@ -212,7 +212,7 @@ namespace Abacus
             std::string lambdaParameter = ExpectIdentifier(input);
             ExpectArrow(input);
 
-            memory_input<> inputCopy(input.current(), input.size(), "CalculateSequence");
+            memory_input<> inputCopy(input.current(), input.size(), "MapSequence");
             
             // Calculate the first item of sequence
             Universal callResult;
@@ -228,7 +228,7 @@ namespace Abacus
                                   input);
             }
 
-            result = std::move(CalculateSequence(inputCopy, isTerminating, threads, lambdaParameter, firstValue, callResult.Type));
+            result = std::move(MapSequence(inputCopy, isTerminating, threads, lambdaParameter, firstValue, callResult.Type));
 
             ExpectClosingBracket(input);
             
