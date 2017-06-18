@@ -85,8 +85,8 @@ void ExecQueue::ExecLoop()
             task.Preview = task.IsSuccessfull ? "Ok. " : "Error. ";
 
             // Merge state variables
-            task.State.insert(state.cbegin(), state.cend());
             task.State.insert(taskResult.Variables.cbegin(), taskResult.Variables.cend());
+            task.State.insert(state.cbegin(), state.cend());
 
             if (!taskResult.Output.empty())
             {

@@ -163,15 +163,15 @@ namespace Abacus
   {
     static Universal Func(const L& l, const R& r)
     {
-      if (std::is_same<L, int>::value && std::is_same<R, int>::value)
-      {
-        if (r != 0 && static_cast<const int&>(l) % static_cast<const int&>(r) == 0)
-        {
-          return Universal(l / r);
-        }
+//      if (std::is_same<L, int>::value && std::is_same<R, int>::value)
+//      {
+//        if (r != 0 && static_cast<const int&>(l) % static_cast<const int&>(r) == 0)
+//        {
+//          return Universal(l / r);
+//        }
 
-        return Universal(l / double(r));
-      }
+//        return Universal(l / double(r));
+//      }
 
       return Universal(l / r);
     }
@@ -184,10 +184,10 @@ namespace Abacus
     {
       double v = std::pow(l, r);
 
-      if (std::is_same<L, int>::value && std::is_same<R, int>::value && r > 0)
-      {
-        return Universal(static_cast<int>(v));
-      }
+//      if (std::is_same<L, int>::value && std::is_same<R, int>::value && r > 0)
+//      {
+//        return Universal(static_cast<int>(v));
+//      }
 
       return Universal(v);
     }

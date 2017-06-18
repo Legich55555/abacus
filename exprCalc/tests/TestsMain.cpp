@@ -156,10 +156,10 @@ int main()
 
   unsigned errorsNumber = 0;
 
-  errorsNumber += CheckExpression(
-        "-a + a",
-        {  {"a", Abacus::Universal(1)} },
-        Abacus::Universal(2));
+//  errorsNumber += CheckExpression(
+//        "-a + a",
+//        {  {"a", Abacus::Universal(1)} },
+//        Abacus::Universal(2));
 
   errorsNumber += CheckProgramPi();
 
@@ -263,7 +263,7 @@ int main()
   errorsNumber += CheckExpression("(1 + -2 + -1*+2.0)", {},  Abacus::Universal(-3.0f));
   errorsNumber += CheckExpression("((1 + -2 + -1*+2.0))", {},  Abacus::Universal(-3.0f));
   errorsNumber += CheckExpression("((+1 + -2 + -1*+2.0 + 10 / (3 + 2)) + (4/2 + 1))+12/3", {},  Abacus::Universal(6.0));
-  errorsNumber += CheckExpression("1 + 2^(3+1)", {},  Abacus::Universal(17));
+  errorsNumber += CheckExpression("1 + 2^(3+1)", {},  Abacus::Universal(17.f));
   errorsNumber += CheckExpression("1 + 2^(3.0+1)", {},  Abacus::Universal(17.f));
   errorsNumber += CheckExpression("1 + 2.0^(3+1)", {},  Abacus::Universal(17.f));
   errorsNumber += CheckExpression("1 + 2.0^(3+1.0)", {},  Abacus::Universal(17.f));
