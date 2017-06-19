@@ -2,6 +2,8 @@
 #include "Common.h"
 
 #include <cmath>
+#include <array>
+#include <climits>
 #include <sstream>
 
 #include <tao/pegtl.hpp>
@@ -10,6 +12,14 @@ namespace Abacus
 {
   using tao::TAOCPP_PEGTL_NAMESPACE::parse_error;
 
+  static const std::array<const char*, 5U> TYPE_NAMES =
+  {
+    "INVALID",
+    "INTEGER",
+    "REAL",
+    "INT_SEQUENCE",
+    "REAL_SEQUENCE"
+  };
 
   Universal::Universal(const Universal &other)
     : Type(Types::INVALID)
@@ -125,10 +135,12 @@ namespace Abacus
     }
     else if (Type == Types::INVALID)
     {
-      return std::string("Invalid");
+      return std::string("INVALID");
     }
 
-    throw parse_error("Runtime error: unexpected workflow.", {});
+    throw parse_error(Print("Internal error: invalid value type %u.",
+                            static_cast<unsigned>(Type)),
+                      {});
   }
 
   template <typename L, typename R>
@@ -137,6 +149,22 @@ namespace Abacus
     static Universal Func(const L& l, const R& r)
     {
       return Universal(l * r);
+    }
+  };
+
+  template <>
+  struct Multiply<int, int>
+  {
+    static Universal Func(const int& l, const int& r)
+    {
+      int m = l * r;
+
+      if (r != 0 && m / r != l)
+      {
+        throw parse_error("Overflow", {});
+      }
+
+      return Universal(m);
     }
   };
 
@@ -163,17 +191,8 @@ namespace Abacus
   {
     static Universal Func(const L& l, const R& r)
     {
-//      if (std::is_same<L, int>::value && std::is_same<R, int>::value)
-//      {
-//        if (r != 0 && static_cast<const int&>(l) % static_cast<const int&>(r) == 0)
-//        {
-//          return Universal(l / r);
-//        }
-
-//        return Universal(l / double(r));
-//      }
-
-      return Universal(l / r);
+      // Divide always returns real numbers.
+      return Universal(l / double(r));
     }
   };
 
@@ -182,14 +201,8 @@ namespace Abacus
   {
     static Universal Func(const L& l, const R& r)
     {
-      double v = std::pow(l, r);
-
-//      if (std::is_same<L, int>::value && std::is_same<R, int>::value && r > 0)
-//      {
-//        return Universal(static_cast<int>(v));
-//      }
-
-      return Universal(v);
+      // Power always returns real numbers.
+      return Universal(std::pow(l, r));
     }
   };
 
@@ -222,7 +235,9 @@ namespace Abacus
       }
     }
 
-    throw parse_error("Runtime error: unexpected workflow.", {});
+    throw parse_error(Print("Invalid binary operation on values of types %s and %s.",
+                            TYPE_NAMES[static_cast<unsigned>(l.Type)], TYPE_NAMES[static_cast<unsigned>(r.Type)]),
+                      {});
   }
 
   Universal Mul(const Universal& l, const Universal& r)
@@ -282,7 +297,9 @@ namespace Abacus
       return l.RealSequence == r.RealSequence;
     }
 
-    throw parse_error("Runtime error: unexpected workflow.", {});
+    throw parse_error(Print("Internal error: types %s and %s cannot be compared",
+                            TYPE_NAMES[static_cast<unsigned>(l.Type)], TYPE_NAMES[static_cast<unsigned>(r.Type)]),
+                      {});
   }
 
   bool operator!=(const Universal& l, const Universal& r)

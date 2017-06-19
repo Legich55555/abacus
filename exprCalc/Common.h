@@ -31,7 +31,7 @@ namespace Abacus
   {
     if (!parse< seq< one<C>, star<space> > >(input))
     {
-      throw parse_error(Print("Invalid syntax. Expected '%c'", C), input);
+      throw parse_error(Print("Expected '%c'", C), input);
     }
   }
 
@@ -46,7 +46,7 @@ namespace Abacus
   {
     if (!parse< seq< string<'-','>' >, star<space> >>(input))
     {
-      throw parse_error("Invalid syntax. Expected '->'.", input);
+      throw parse_error("Expected '->'.", input);
     }
   }
 
@@ -75,7 +75,7 @@ namespace Abacus
     std::string name;
     if (!parse< seq< identifier, star<space> >, IdentifierAction >(input, name))
     {
-      throw parse_error("Invalid map() syntax. Expected lambda parameter", input);
+      throw parse_error("Expected lambda parameter", input);
     }
 
     return name;

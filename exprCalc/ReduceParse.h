@@ -11,9 +11,12 @@ namespace Abacus
 
   namespace Expr
   {
-    // Forward declaration for Expr::Parse()
-    template< typename Input >
-    bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, Universal& result);
+    template<typename Input>
+    void Expect(Input& input,
+                const IsTerminating& isTerminating,
+                const unsigned threads,
+                const State& variables,
+                Universal& result);
   }
 
   namespace Reduce
@@ -33,13 +36,7 @@ namespace Abacus
       };
 
       Universal result;
-      if (!Expr::Parse(input, nullptr, 1U, params, result))
-      {
-        throw parse_error(Print("Error in reduce() lambda. %s: %s, %s: %s",
-                                firstParamName.c_str(), firstParamVal.ToString().c_str(),
-                                secondParamName.c_str(), Universal(secondParamVal).ToString().c_str()),
-                          input);
-      }
+      Expr::Expect(input, nullptr, 1U, params, result);
       if (!result.IsNumber())
       {
         throw parse_error(Print("reduce() lambda returned non number value. %s: %s, %s: %s",
@@ -131,8 +128,7 @@ namespace Abacus
                              const std::string& firstParamName,
                              const std::string& secondParamName,
                              const Universal& neutralVal,
-                             const std::vector<IT>& inputSequence
-                             )
+                             const std::vector<IT>& inputSequence)
     {
       static const size_t MIN_JOB_SIZE = 1000U;
 
@@ -257,7 +253,11 @@ namespace Abacus
     }
 
     template< typename Input >
-    bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, Universal& result)
+    bool Parse(Input& input,
+               const IsTerminating& isTerminating,
+               const unsigned threads,
+               const State& variables,
+               Universal& result)
     {
       struct ReduceBegin : seq<string< 'r', 'e', 'd', 'u', 'c', 'e' >, star<space>, one<'('> > { };
 
@@ -267,26 +267,21 @@ namespace Abacus
       }
 
       Universal firstParamValue;
-      if (!Expr::Parse(input, isTerminating, threads, variables, firstParamValue))
-      {
-        throw parse_error("First reduce() parameter is not valid.", input);
-      }
+      Expr::Expect(input, isTerminating, threads, variables, firstParamValue);
       if (firstParamValue.Type != Universal::Types::INT_SEQUENCE &&
           firstParamValue.Type != Universal::Types::REAL_SEQUENCE)
       {
-        throw parse_error("First reduce() parameter is not valid.", input);
+        throw parse_error(Print("Expected sequence. but actual value is %s", firstParamValue.ToString().c_str()),
+                          input);
       }
 
       ExpectComma(input);
 
       Universal secondParamValue;
-      if (!Expr::Parse(input, isTerminating, threads, variables, secondParamValue))
-      {
-        throw parse_error("Failed to parse the second reduce() parameter.", input);
-      }
+      Expr::Expect(input, isTerminating, threads, variables, secondParamValue);
       if (!secondParamValue.IsNumber())
       {
-        throw parse_error(Print("Second reduce() parameter is must be a number but actual value is %s.",
+        throw parse_error(Print("Expected a number but actual value is %s.",
                                 secondParamValue.ToString().c_str()),
                           input);
       }

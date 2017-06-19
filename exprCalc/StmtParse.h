@@ -5,7 +5,6 @@
 #include "ExprParse.h"
 #include "Universal.h"
 
-#include <map>
 #include <string>
 #include <vector>
 
@@ -49,7 +48,13 @@ namespace Abacus
           template< typename... > class Action,
           template< typename... > class Control,
           typename Input >
-      static bool match(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, std::vector<std::string>&, State& newVariables)
+      static bool match(
+              Input& input,
+              const IsTerminating& isTerminating,
+              const unsigned threads,
+              const State& variables,
+              std::vector<std::string>&,
+              State& newVariables)
       {
         std::string variableName;
         if (!parse<AssignmentBegin, IdentifierAction>(input, variableName))
@@ -58,10 +63,7 @@ namespace Abacus
         }
 
         Universal variableValue;
-        if (!Expr::Parse(input, isTerminating, threads, variables, variableValue))
-        {
-          throw parse_error("Syntax error. Expected expression.", input);
-        }
+        Expr::Expect(input, isTerminating, threads, variables, variableValue);
 
         newVariables[variableName] = variableValue;
 
@@ -84,7 +86,13 @@ namespace Abacus
           template< typename... > class Action,
           template< typename... > class Control,
           typename Input >
-      static bool match(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, std::vector<std::string>& output, State&)
+      static bool match(
+              Input& input,
+              const IsTerminating& isTerminating,
+              const unsigned threads,
+              const State& variables,
+              std::vector<std::string>& output,
+              State&)
       {
         if (!parse<PrintExprBegin>(input))
         {
@@ -92,10 +100,7 @@ namespace Abacus
         }
 
         Universal expressionValue;
-        if (!Expr::Parse(input, isTerminating, threads, variables, expressionValue))
-        {
-          throw parse_error("Syntax error.", input);
-        }
+        Expr::Expect(input, isTerminating, threads, variables, expressionValue);
 
         output.push_back(expressionValue.ToString());
 
@@ -136,7 +141,13 @@ namespace Abacus
           template< typename... > class Action,
           template< typename... > class Control,
           typename Input >
-      static bool match(Input& input, IsTerminating, unsigned, const State&, std::vector<std::string>& output, State&)
+      static bool match(
+              Input& input,
+              const IsTerminating&,
+              const unsigned,
+              const State&,
+              std::vector<std::string>& output,
+              State&)
       {
         if (!parse<PrintTextBegin>(input))
         {
@@ -146,12 +157,12 @@ namespace Abacus
         std::string text;
         if (!parse<Text, TextAction>(input, text))
         {
-          throw parse_error("Invalid text value.", input);
+          throw parse_error("Expected string.", input);
         }
 
         if (!parse<PrintTextEnd>(input))
         {
-          throw parse_error("Syntax error.", input);
+          throw parse_error("Expected \"", input);
         }
 
         output.push_back(text);
@@ -163,7 +174,13 @@ namespace Abacus
     struct Statement : seq< sor<Assignment, PrintExpr, PrintText>, star< space > >  { };
 
     template<typename Input>
-    bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, std::vector<std::string>& output, State& newVariables)
+    bool Parse(
+            Input& input,
+            const IsTerminating& isTerminating,
+            const unsigned threads,
+            const State& variables,
+            std::vector<std::string>& output,
+            State& newVariables)
     {
       bool result = parse<Statement>(input, isTerminating, threads, variables, output, newVariables);
       if (result && input.empty())
@@ -171,7 +188,12 @@ namespace Abacus
         return true;
       }
 
-      throw parse_error("Syntax error.", input);
+      if (result)
+      {
+        throw parse_error("Error in statement.", input);
+      }
+
+      throw parse_error("Expected statement.", input);
     }
   }
 }

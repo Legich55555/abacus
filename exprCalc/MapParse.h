@@ -17,9 +17,12 @@ namespace Abacus
 
   namespace Expr
   {
-    // Forward declaration for Expr::Parse()
-    template< typename Input >
-    bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, Universal& result);
+    template<typename Input>
+    void Expect(Input& input,
+                const IsTerminating& isTerminating,
+                const unsigned threads,
+                const State& variables,
+                Universal& result);
   }
 
   namespace Map
@@ -51,16 +54,9 @@ namespace Abacus
         memory_input<> input(inputCurr, inputSize, "MapSubSequence");
 
         Universal callResult;
-        if (Expr::Parse(input, isTerminating, 1U, lambdaParams, callResult))
-        {
-          outputSequence[idx] = GetNumber<OT>(callResult);
-        }
-        else
-        {
-          throw parse_error(Print("Runtime error in lambda. Param: %s, Value: %s",
-                                  paramName.c_str(), lambdaParams.cbegin()->second.ToString().c_str()),
-                            input);
-        }
+        Expr::Expect(input, isTerminating, 1U, lambdaParams, callResult);
+
+        outputSequence[idx] = GetNumber<OT>(callResult);
       }
     }
 
@@ -108,7 +104,7 @@ namespace Abacus
         {
           job.get();
         }
-        catch (const TerminatedError& ex)
+        catch (const TerminatedError&)
         {
           isTerminated = true;
         }
@@ -185,7 +181,12 @@ namespace Abacus
     }
 
     template< typename Input >
-    bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, Universal& result)
+    bool Parse(
+            Input& input,
+            const IsTerminating& isTerminating,
+            const unsigned threads,
+            const State& variables,
+            Universal& result)
     {
       struct MapBegin : seq< string<'m', 'a', 'p'>, star<space>, one<'('> > { };
 
@@ -195,10 +196,7 @@ namespace Abacus
       }
 
       Universal firstValue;
-      if (!Expr::Parse(input, isTerminating, threads, variables, firstValue))
-      {
-        throw parse_error("Failed to parse first map() parameter.", input);
-      }
+      Expr::Expect(input, isTerminating, threads, variables, firstValue);
 
       if (!((firstValue.Type == Universal::Types::INT_SEQUENCE && !firstValue.IntSequence.empty()) ||
             (firstValue.Type == Universal::Types::REAL_SEQUENCE && !firstValue.RealSequence.empty())))
@@ -217,13 +215,10 @@ namespace Abacus
       // Calculate the first item of sequence
       Universal callResult;
       State lambdaParams = { { lambdaParameter, Universal(firstValue.IntSequence.front()) } };
-      if (!Expr::Parse(input, isTerminating, threads, lambdaParams, callResult))
-      {
-        throw parse_error("Invalid lambda.", input);
-      }
+      Expr::Expect(input, isTerminating, threads, lambdaParams, callResult);
       if (!callResult.IsNumber())
       {
-        throw parse_error(Print("Runtime error in map() lambda. Expected number but labmda returned %s.",
+        throw parse_error(Print("Expected number but labmda returned %s.",
                                 callResult.ToString().c_str()),
                           input);
       }

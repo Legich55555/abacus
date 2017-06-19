@@ -106,8 +106,13 @@ unsigned CheckStatement(
     }
   }
 
-  // TODO: check if it a valid operation
   if (expectedResult.Output != result.Output)
+  {
+    std::cout << "FAILED test for \"" << statement << "\"" << std::endl;
+    return 1U;
+  }
+
+  if (expectedResult.Errors.size() == result.Errors.size())
   {
     std::cout << "FAILED test for \"" << statement << "\"" << std::endl;
     return 1U;
@@ -156,23 +161,18 @@ int main()
 
   unsigned errorsNumber = 0;
 
-//  errorsNumber += CheckExpression(
-//        "-a + a",
-//        {  {"a", Abacus::Universal(1)} },
-//        Abacus::Universal(2));
-
   errorsNumber += CheckProgramPi();
 
   errorsNumber += CheckStatement(
         "print \"pi = \"",
         { },
-        Abacus::ExecResult { Abacus::ResultBrief::SUCCEEDED, {"pi = "}, {} }
+        Abacus::ExecResult { Abacus::ResultBrief::SUCCEEDED, {}, {"pi = "}, {} }
         );
 
   errorsNumber += CheckStatement(
         "out 2 + 2",
         { },
-        Abacus::ExecResult { Abacus::ResultBrief::SUCCEEDED, {"4"}, {} }
+        Abacus::ExecResult { Abacus::ResultBrief::SUCCEEDED, {}, {"4"}, {} }
         );
 
   errorsNumber += CheckExpression(
@@ -237,6 +237,8 @@ int main()
         },
         Abacus::Universal(0));
 
+  errorsNumber += CheckExpression(" 1.0E-2", {}, Abacus::Universal(1.));
+  errorsNumber += CheckExpression(" 1.0E+2", {}, Abacus::Universal(1.));
   errorsNumber += CheckExpression(" 1.0", {}, Abacus::Universal(1.));
   errorsNumber += CheckExpression(" 1.0 ", {}, Abacus::Universal(1.));
   errorsNumber += CheckExpression("1.0 ", {}, Abacus::Universal(1.));
@@ -271,7 +273,7 @@ int main()
   errorsNumber += CheckStatement(
         "var a = 5",
         { },
-        Abacus::ExecResult { Abacus::ResultBrief::SUCCEEDED, {}, {{"a", Abacus::Universal(5)}} }
+        Abacus::ExecResult { Abacus::ResultBrief::SUCCEEDED, {}, {}, {{"a", Abacus::Universal(5)}} }
         );
 
   errorsNumber += CheckStatement(
@@ -280,6 +282,7 @@ int main()
         Abacus::ExecResult
         {
           Abacus::ResultBrief::SUCCEEDED,
+          {},
           {},
           { {"b", Abacus::Universal(std::vector<int> {2, 4, 6, 8, 10} )} } }
         );

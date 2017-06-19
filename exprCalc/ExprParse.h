@@ -10,6 +10,8 @@
 
 #include <map>
 #include <vector>
+#include <cfloat>
+#include <climits>
 #include <functional>
 #include <tao/pegtl.hpp>
 
@@ -20,13 +22,20 @@ namespace Abacus
     namespace Expr
     {
         template<typename Input>
-        bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, Universal& result);
+        bool Parse(
+                Input& input,
+                const IsTerminating& isTerminating,
+                const unsigned threads,
+                const State& variables,
+                Universal& result);
         
         struct Real : seq<
             opt< one<'+', '-'> >,
             star<digit>,
             one<'.'>,
-            plus<digit> > { };
+            plus<digit>,
+            opt< seq < one<'E', 'e'>, one<'+', '-'>, plus<digit> > >
+            > { };
         
         struct Integer : seq<
             opt< one<'+', '-'> >,
@@ -62,7 +71,12 @@ namespace Abacus
                 template< typename... > class Action,
                 template< typename... > class Control,
                 typename Input >
-            static bool match(Input& input, IsTerminating, unsigned, BinaryStacks& stacks, const State&)
+            static bool match(
+                    Input& input,
+                    const IsTerminating&,
+                    const unsigned,
+                    BinaryStacks& stacks,
+                    const State&)
             {
                 struct BinaryOperatorDef
                 {
@@ -105,7 +119,12 @@ namespace Abacus
                 template< typename... > class Action,
                 template< typename... > class Control,
                 typename Input>
-            static bool match(Input& input, IsTerminating isTerminating, unsigned threads, BinaryStacks& stacks, const State& variables)
+            static bool match(
+                    Input& input,
+                    const IsTerminating& isTerminating,
+                    const unsigned threads,
+                    BinaryStacks& stacks,
+                    const State& variables)
             {
                 Universal result;
                 if (Map::Parse(input, isTerminating, threads, variables, result))
@@ -128,7 +147,12 @@ namespace Abacus
                 template< typename... > class Action,
                 template< typename... > class Control,
                 typename Input>
-            static bool match(Input& input, IsTerminating isTerminating, unsigned threads, BinaryStacks& stacks, const State& variables)
+            static bool match(
+                    Input& input,
+                    const IsTerminating& isTerminating,
+                    const unsigned threads,
+                    BinaryStacks& stacks,
+                    const State& variables)
             {
                 Universal result;
                 if (Reduce::Parse(input, isTerminating, threads, variables, result))
@@ -151,7 +175,12 @@ namespace Abacus
                 template< typename... > class Action,
                 template< typename... > class Control,
                 typename Input>
-            static bool match(Input& input, IsTerminating isTerminating, unsigned threads, BinaryStacks& stacks, const State& variables)
+            static bool match(
+                    Input& input,
+                    const IsTerminating& isTerminating,
+                    const unsigned threads,
+                    BinaryStacks& stacks,
+                    const State& variables)
             {
                 Universal result;
                 if (Sequence::Parse(input, isTerminating, threads, variables, result))
@@ -166,10 +195,7 @@ namespace Abacus
 
         struct Expression : seq<
                 star<space>,
-                sor<
-                    list_must<Atomic, BinaryOp, space>,
-                    Atomic
-                >,
+                sor< list_must< Atomic, BinaryOp, space >, Atomic >,
                 star<space>
                 > { };
         
@@ -182,7 +208,12 @@ namespace Abacus
         struct Action<Integer>
         {
             template< typename Input >
-            static void apply(const Input& input, IsTerminating, unsigned, BinaryStacks& stacks, const State&)
+            static void apply(
+                    const Input& input,
+                    const IsTerminating&,
+                    const unsigned,
+                    BinaryStacks& stacks,
+                    const State&)
             {
                 std::string strVal = input.string();
 
@@ -194,7 +225,9 @@ namespace Abacus
                 }
                 catch (const std::exception& ex)
                 {
-                    throw parse_error(ex.what(), input);
+                    throw parse_error(Print("Expected integer number value in range [%i, %i]. Error: %s",
+                                            INT_MIN, INT_MAX, ex.what()),
+                                      input);
                 }
 
                 stacks.PushUniversal(Universal(val));
@@ -205,7 +238,12 @@ namespace Abacus
         struct Action<Real>
         {
             template< typename Input >
-            static void apply(const Input& input, IsTerminating, unsigned, BinaryStacks& stacks, const State&)
+            static void apply(
+                    const Input& input,
+                    const IsTerminating&,
+                    const unsigned,
+                    BinaryStacks& stacks,
+                    const State&)
             {
                 std::string strVal = input.string();
 
@@ -217,7 +255,9 @@ namespace Abacus
                 }
                 catch (const std::exception& ex)
                 {
-                    throw parse_error(ex.what(), input);
+                    throw parse_error(Print("Expected floar number value in range [%g, %g]. Error: %s",
+                                            DBL_MIN, DBL_MAX, ex.what()),
+                                      input);
                 }
 
                 stacks.PushUniversal(Universal(val));
@@ -228,7 +268,12 @@ namespace Abacus
         struct Action<Variable>
         {
             template< typename Input >
-            static void apply(const Input& input, IsTerminating, unsigned, BinaryStacks& stacks, const State& variables)
+            static void apply(
+                    const Input& input,
+                    const IsTerminating&,
+                    const unsigned,
+                    BinaryStacks& stacks,
+                    const State& variables)
             {
                 std::string strVal = input.string();
 
@@ -246,7 +291,7 @@ namespace Abacus
         template<>
         struct Action< one<'('> >
         {
-            static void apply0(IsTerminating, unsigned, BinaryStacks& stacks, const State&)
+            static void apply0(const IsTerminating&, const unsigned, BinaryStacks& stacks, const State&)
             {
                 stacks.Open();
             }
@@ -255,14 +300,19 @@ namespace Abacus
         template<>
         struct Action< one<')'> >
         {
-            static void apply0(IsTerminating, unsigned, BinaryStacks& stacks, const State&)
+            static void apply0(const IsTerminating&, const unsigned, BinaryStacks& stacks, const State&)
             {
                 stacks.Close();
             }
         };
         
         template<typename Input>
-        bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, Universal& result)
+        bool Parse(
+                Input& input,
+                const IsTerminating& isTerminating,
+                const unsigned threads,
+                const State& variables,
+                Universal& result)
         {
             BinaryStacks stacks;
             
@@ -274,6 +324,23 @@ namespace Abacus
             }
             
             return false;
+        }
+
+        template<typename Input>
+        void Expect(Input& input,
+                    const IsTerminating& isTerminating,
+                    const unsigned threads,
+                    const State& variables,
+                    Universal& result)
+        {
+            BinaryStacks stacks;
+
+            if (!parse<Expression, Action>(input, isTerminating, threads, stacks, variables))
+            {
+              throw parse_error("Expected expression", input);
+            }
+
+            result = stacks.Calculate();
         }
     }
 }

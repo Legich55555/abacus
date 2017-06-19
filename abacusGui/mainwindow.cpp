@@ -150,6 +150,9 @@ void MainWindow::on_actionOpen_triggered()
         QString content = QString::fromUtf8(data.constData(), data.size());
 
         ui->sourceEditor->document()->clear();
+        ui->outputViewer->document()->clear();
+        ui->resultViewer->document()->clear();
+
         ui->sourceEditor->document()->setPlainText(content);
     }
     else

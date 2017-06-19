@@ -12,11 +12,11 @@ namespace Abacus
   {
     enum class Types : unsigned char
     {
-      INVALID,
-      INTEGER,
-      REAL,
-      INT_SEQUENCE,
-      REAL_SEQUENCE
+      INVALID = 0,
+      INTEGER = 1U,
+      REAL = 2U,
+      INT_SEQUENCE = 3U,
+      REAL_SEQUENCE = 4U
     };
 
     Types Type;

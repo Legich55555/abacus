@@ -19,16 +19,14 @@ namespace Abacus
     try
     {
       memory_input<> input(expression.data(), expression.size(), "Calculate");
-      if (!Expr::Parse(input, isTerminating, WORK_THREADS_NUM, variables, result))
-      {
-        std::cout << "Failed to parse expression." << std::endl;
-      }
+
+      Expr::Expect(input, isTerminating, WORK_THREADS_NUM, variables, result);
 
       return result;
     }
     catch (const parse_error& parseError)
     {
-      std::cout << parseError.what() << std::endl;
+      std::cout << "Failed to parse expression" << std::endl;
     }
 
     return result;
@@ -36,7 +34,7 @@ namespace Abacus
 
   ExecResult Execute(const std::string& statement, const State& variables, IsTerminating isTerminating)
   {
-    ExecResult execResult = { ResultBrief::SUCCEEDED, /*{},*/ {}, {} };
+    ExecResult execResult = { ResultBrief::FAILED, {}, {}, {} };
 
     try
     {
@@ -54,11 +52,10 @@ namespace Abacus
       else
       {
         execResult.Brief = ResultBrief::FAILED;
-        execResult.Output.push_back("Internal error.");
+        execResult.Errors.push_back(Error { "Internal error.", {} });
       }
     }
-    // TODO: review and rework exception handling
-    catch (const TerminatedError& ex)
+    catch (const TerminatedError&)
     {
       execResult.Brief = ResultBrief::TERMINATED;
     }
@@ -66,8 +63,14 @@ namespace Abacus
     {
       execResult.Brief = ResultBrief::FAILED;
 
-      execResult.Output.push_back(err.what());
-      execResult.Output.push_back("Statement parsing failed.");
+      std::vector<Abacus::Position> errorPositions;
+      errorPositions.reserve(err.positions.size());
+      for (const auto& pos : err.positions)
+      {
+        errorPositions.push_back(Abacus::Position { pos.byte } );
+      }
+
+      execResult.Errors.push_back(Error { err.what(), std::move(errorPositions) });
     }
 
     return execResult;

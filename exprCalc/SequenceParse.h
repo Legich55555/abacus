@@ -11,15 +11,22 @@ namespace Abacus
 
   namespace Expr
   {
-    // Forward declaration for Expr::Parse()
-    template< typename Input >
-    bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, Universal& result);
+    template<typename Input>
+    void Expect(Input& input,
+                const IsTerminating& isTerminating,
+                const unsigned threads,
+                const State& variables,
+                Universal& result);
   }
 
   namespace Sequence
   {
     template<typename Input>
-    bool Parse(Input& input, IsTerminating isTerminating, unsigned threads, const State& variables, Universal& result)
+    bool Parse(Input& input,
+               const IsTerminating& isTerminating,
+               const unsigned threads,
+               const State& variables,
+               Universal& result)
     {
       if (!parse< seq< one<'{'>, star<space> > >(input))
       {
@@ -27,14 +34,10 @@ namespace Abacus
       }
 
       Universal firstValue;
-      if (!Expr::Parse(input, isTerminating, threads, variables, firstValue))
-      {
-        throw parse_error("Failed to parse first sequence parameter.", input);
-      }
-
+      Expr::Expect(input, isTerminating, threads, variables, firstValue);
       if (firstValue.Type != Universal::Types::INTEGER)
       {
-        throw parse_error(Print("First sequence parameter has wrong type. Value: %s",
+        throw parse_error(Print("Expected integer but actual is %s",
                                 firstValue.ToString().c_str()),
                           input);
       }
@@ -43,14 +46,13 @@ namespace Abacus
 
       Universal secondValue;
       {
-        if (!Expr::Parse(input, isTerminating, threads, variables, secondValue))
-        {
-          throw parse_error("Failed to parse the second parameter in sequence.", input);
-        }
+        Expr::Expect(input, isTerminating, threads, variables, secondValue);
 
         if (secondValue.Type != Universal::Types::INTEGER)
         {
-          throw parse_error("Second sequence parameter is not valid.", input);
+          throw parse_error(Print("Expected integer but actual is %s",
+                                  secondValue.ToString().c_str()),
+                            input);
         }
       }
 
@@ -58,13 +60,14 @@ namespace Abacus
 
       const int step = secondValue.Integer > firstValue.Integer ? 1 : -1;
       const size_t size = static_cast<unsigned>(secondValue.Integer > firstValue.Integer ?
-                                                  secondValue.Integer - firstValue.Integer + 1 : firstValue.Integer - secondValue.Integer + 1);
+                              secondValue.Integer - firstValue.Integer + 1 : firstValue.Integer - secondValue.Integer + 1);
 
       static const size_t MAX_SEQUENCE_SIZE = 2000000U;
 
       if (size > MAX_SEQUENCE_SIZE)
       {
-        throw parse_error(Print("Runtime error. Sequence exceeded maximal possible length. Max: %u, Requested: %u.",                                         static_cast<unsigned>(MAX_SEQUENCE_SIZE), static_cast<unsigned>(size)),
+        throw parse_error(Print("Sequence exceeded maximal possible length. Max: %u, Requested: %u.",
+                                static_cast<unsigned>(MAX_SEQUENCE_SIZE), static_cast<unsigned>(size)),
                           input);
       }
 

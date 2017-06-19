@@ -59,25 +59,23 @@ namespace Abacus
     size_t CharIdx;
   };
 
-  /**
-    * @brief Error contains all information about a particular issue in statement.
-    */
+  /** @brief Error contains all information about a particular issue in statement. */
   struct Error
   {
     std::string Message;
     std::vector<Position> Positions;
   };
 
-  /**
-    * @brief ExecResult represents result of statement execution.
-    */
+  /** @brief ExecResult represents result of statement execution. */
   struct ExecResult
   {
     /** @brief Brief result of execution */
     ResultBrief Brief;
 
+    /** @brief Errors happened during of execution */
+    std::vector<Error> Errors;
+
     /**
-     *
      * @brief Output generated during of execution
      *
      * @note Output can be generated even if execution was terminated or failed.

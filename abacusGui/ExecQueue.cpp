@@ -82,7 +82,23 @@ void ExecQueue::ExecLoop()
 
             Abacus::ExecResult taskResult = Abacus::Execute(task.Statement.toStdString(), state, isCancelling);
             task.IsSuccessfull = taskResult.Brief == Abacus::ResultBrief::SUCCEEDED;
-            task.Preview = task.IsSuccessfull ? "Ok. " : "Error. ";
+            task.Preview = task.IsSuccessfull ? "Ok. " : "Error: ";
+
+            for (const auto& err : taskResult.Errors)
+            {
+              const std::string& msg = err.Message;
+              task.Preview.append(msg.c_str());
+
+              const std::vector<Abacus::Position>& positions = err.Positions;
+              if (!positions.empty())
+              {
+                task.Preview.append(QString(", where: "));
+                for (const auto& pos : positions)
+                {
+                  task.Preview.append(QString("%1, ").arg(pos.CharIdx));
+                }
+              }
+            }
 
             // Merge state variables
             task.State.insert(taskResult.Variables.cbegin(), taskResult.Variables.cend());
@@ -102,10 +118,10 @@ void ExecQueue::ExecLoop()
             if (!task.State.empty())
             {
                 task.Preview.append("Vars: ");
-                for (const auto& v : task.State)
+                for (const auto& v : taskResult.Variables)
                 {
-                    QString varName(v.first.c_str());
-                    QString varValue(v.second.ToString().c_str());
+                    const QString varName(v.first.c_str());
+                    const QString varValue(v.second.ToString().c_str());
 
                     task.Preview.append(QString("%1: %2, ")
                                        .arg(varName)

@@ -2,7 +2,6 @@
 
 #include "Common.h"
 #include "Universal.h"
-#include "ExprParse.h"
 
 #include <tao/pegtl.hpp>
 
@@ -81,7 +80,6 @@ namespace Abacus
       }
       catch (const std::exception& err)
       {
-        // Throw own exception to provide position
         throw parse_error(err.what(), op.Pos);
       }
     }
