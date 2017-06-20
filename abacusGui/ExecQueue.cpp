@@ -95,14 +95,13 @@ void ExecQueue::ExecLoop()
                 task.Preview.append(QString(", where: "));
                 for (const auto& pos : positions)
                 {
-                  task.Preview.append(QString("%1, ").arg(pos.CharIdx));
+                  // Position is converted from indecies to ordinal.
+                  task.Preview.append(QString("%1, ").arg(pos.CharIdx + 1U));
                 }
               }
             }
 
-            // Merge state variables
-            task.State.insert(taskResult.Variables.cbegin(), taskResult.Variables.cend());
-            task.State.insert(state.cbegin(), state.cend());
+            task.State.swap(taskResult.Variables);
 
             if (!taskResult.Output.empty())
             {
@@ -118,7 +117,7 @@ void ExecQueue::ExecLoop()
             if (!task.State.empty())
             {
                 task.Preview.append("Vars: ");
-                for (const auto& v : taskResult.Variables)
+                for (const auto& v : task.State)
                 {
                     const QString varName(v.first.c_str());
                     const QString varValue(v.second.ToString().c_str());

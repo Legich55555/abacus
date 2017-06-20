@@ -16,7 +16,7 @@ namespace Abacus
   {
     using namespace tao::TAOCPP_PEGTL_NAMESPACE;
 
-    template<typename Rule>
+    template< typename Rule >
     struct IdentifierAction : nothing<Rule> { };
 
     template<>
@@ -29,38 +29,38 @@ namespace Abacus
       }
     };
 
-    struct AssignmentBegin : seq<
-        star<space>,
-        string<'v', 'a', 'r'>,
-        star<space>,
-        identifier,
-        star<space>,
-        one<'='>,
-        star<space> > { };
-
     struct Assignment
     {
       using analyze_t = analysis::generic< analysis::rule_type::ANY >;
 
-      template<
-          apply_mode,
-          rewind_mode,
-          template< typename... > class Action,
-          template< typename... > class Control,
-          typename Input >
-      static bool match(
-              Input& input,
-              const IsTerminating& isTerminating,
-              const unsigned threads,
-              const State& variables,
-              std::vector<std::string>&,
-              State& newVariables)
+      template< apply_mode,
+                rewind_mode,
+                template< typename... > class Action,
+                template< typename... > class Control,
+                typename Input >
+      static bool match(Input& input,
+                        const IsTerminating& isTerminating,
+                        const unsigned threads,
+                        const State& variables,
+                        std::vector<std::string>&,
+                        State& newVariables)
       {
-        std::string variableName;
-        if (!parse<AssignmentBegin, IdentifierAction>(input, variableName))
+        struct VarDefBegin : seq< star<space>, string<'v', 'a', 'r'>, plus<space> > {};
+
+        if (!parse< VarDefBegin >(input))
         {
           return false;
         }
+
+        struct VarDefName : seq< identifier, star<space> > {};
+
+        std::string variableName;
+        if (!parse<VarDefName, IdentifierAction>(input, variableName))
+        {
+          throw parse_error("Expected variable name", input);
+        }
+
+        ExpectChar<'='>(input);
 
         Universal variableValue;
         Expr::Expect(input, isTerminating, threads, variables, variableValue);
@@ -71,29 +71,24 @@ namespace Abacus
       }
     };
 
-    struct PrintExprBegin : seq<
-        star<space>,
-        string<'o', 'u', 't'>,
-        star<space> > { };
-
     struct PrintExpr
     {
       using analyze_t = analysis::generic< analysis::rule_type::ANY >;
 
-      template<
-          apply_mode,
-          rewind_mode,
-          template< typename... > class Action,
-          template< typename... > class Control,
-          typename Input >
-      static bool match(
-              Input& input,
-              const IsTerminating& isTerminating,
-              const unsigned threads,
-              const State& variables,
-              std::vector<std::string>& output,
-              State&)
+      template< apply_mode,
+                rewind_mode,
+                template< typename... > class Action,
+                template< typename... > class Control,
+                typename Input >
+      static bool match(Input& input,
+                        const IsTerminating& isTerminating,
+                        const unsigned threads,
+                        const State& variables,
+                        std::vector<std::string>& output,
+                        State&)
       {
+        struct PrintExprBegin : seq< star<space>, string<'o', 'u', 't'>, plus<space> > { };
+
         if (!parse<PrintExprBegin>(input))
         {
           return false;
@@ -108,15 +103,7 @@ namespace Abacus
       }
     };
 
-    struct PrintTextBegin : seq<
-        star<space>,
-        string<'p', 'r', 'i', 'n', 't'>,
-        star<space>,
-        one<'"'>> { };
-
-    struct PrintTextEnd : one<'"'> { };
-
-    struct Text : seq< star<not_one<'"'>>, at<one<'"'>> > { };
+    struct Text : seq< star< not_one<'"'> > > { };
 
     template<typename Rule>
     struct TextAction : nothing<Rule> { };
@@ -141,18 +128,21 @@ namespace Abacus
           template< typename... > class Action,
           template< typename... > class Control,
           typename Input >
-      static bool match(
-              Input& input,
-              const IsTerminating&,
-              const unsigned,
-              const State&,
-              std::vector<std::string>& output,
-              State&)
+      static bool match(Input& input,
+                        const IsTerminating&,
+                        const unsigned,
+                        const State&,
+                        std::vector<std::string>& output,
+                        State&)
       {
+        struct PrintTextBegin : seq< star<space>, string<'p', 'r', 'i', 'n', 't'>, plus<space> > { };
+
         if (!parse<PrintTextBegin>(input))
         {
           return false;
         }
+
+        ExpectChar<'"'>(input);
 
         std::string text;
         if (!parse<Text, TextAction>(input, text))
@@ -160,10 +150,7 @@ namespace Abacus
           throw parse_error("Expected string.", input);
         }
 
-        if (!parse<PrintTextEnd>(input))
-        {
-          throw parse_error("Expected \"", input);
-        }
+        ExpectChar<'"'>(input);
 
         output.push_back(text);
 
@@ -174,26 +161,14 @@ namespace Abacus
     struct Statement : seq< sor<Assignment, PrintExpr, PrintText>, star< space > >  { };
 
     template<typename Input>
-    bool Parse(
-            Input& input,
-            const IsTerminating& isTerminating,
-            const unsigned threads,
-            const State& variables,
-            std::vector<std::string>& output,
-            State& newVariables)
+    bool Parse(Input& input,
+               const IsTerminating& isTerminating,
+               const unsigned threads,
+               const State& variables,
+               std::vector<std::string>& output,
+               State& newVariables)
     {
-      bool result = parse<Statement>(input, isTerminating, threads, variables, output, newVariables);
-      if (result && input.empty())
-      {
-        return true;
-      }
-
-      if (result)
-      {
-        throw parse_error("Error in statement.", input);
-      }
-
-      throw parse_error("Expected statement.", input);
+      return parse<Statement>(input, isTerminating, threads, variables, output, newVariables);
     }
   }
 }

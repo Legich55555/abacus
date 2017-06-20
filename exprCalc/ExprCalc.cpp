@@ -6,11 +6,14 @@
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/analyze.hpp> // Include the analyze function that checks a grammar for possible infinite cycles.
 
+#include <iterator>
+
 namespace Abacus
 {
   using namespace tao::TAOCPP_PEGTL_NAMESPACE;
 
-  unsigned WORK_THREADS_NUM = 4U;
+  // Simplification: expected 4-core systems. 1 core for GUI and 3 for background tasks.
+  unsigned WORK_THREADS_NUM = 3U;
 
   Universal Calculate(const std::string& expression, const State& variables, IsTerminating isTerminating)
   {
@@ -44,15 +47,32 @@ namespace Abacus
       if (parse<star<space>>(input) && input.size() == 0)
       {
         execResult.Brief = ResultBrief::SUCCEEDED;
-      }
-      else if (Stmt::Parse(input, isTerminating, WORK_THREADS_NUM, variables, execResult.Output, execResult.Variables))
-      {
-        execResult.Brief = ResultBrief::SUCCEEDED;
+        execResult.Variables = variables;
       }
       else
       {
-        execResult.Brief = ResultBrief::FAILED;
-        execResult.Errors.push_back(Error { "Internal error.", {} });
+        State currentVariables = variables;
+        State newVariables;
+        while (!input.empty())
+        {
+          if (!Stmt::Parse(input,
+                           isTerminating,
+                           WORK_THREADS_NUM,
+                           currentVariables,
+                           execResult.Output,
+                           newVariables))
+          {
+            throw parse_error("Expected 'var', 'print' or 'out'", input);
+          }
+
+          newVariables.insert(currentVariables.cbegin(), currentVariables.cend());
+
+          currentVariables.swap(newVariables);
+          newVariables.clear();
+        }
+
+        execResult.Brief = ResultBrief::SUCCEEDED;
+        execResult.Variables.swap(currentVariables);
       }
     }
     catch (const TerminatedError&)

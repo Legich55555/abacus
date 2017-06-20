@@ -314,8 +314,25 @@ int main()
           Abacus::ResultBrief::SUCCEEDED,
           {},
           {},
-          { {"b", Abacus::Universal(std::vector<int> {2, 4, 6, 8, 10} )} } }
-        );
+          {
+            {"a", Abacus::Universal(5)},
+            {"b", Abacus::Universal(std::vector<int> {2, 4, 6, 8, 10} )}
+          }
+        });
+
+  errorsNumber += CheckStatement(
+        "var a = 1 var b = 2",
+        { },
+        Abacus::ExecResult
+        {
+          Abacus::ResultBrief::SUCCEEDED,
+          {},
+          {},
+          {
+            {"a", Abacus::Universal(1)},
+            {"b", Abacus::Universal(2)}
+          }
+        });
 
   if (errorsNumber != 0)
   {
