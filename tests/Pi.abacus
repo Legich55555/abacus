@@ -1,0 +1,9 @@
+var a = 0
+var a1 = 2
+var b = 10*1000*a1
+var c = { a, b}
+var m = map(c, x -> (-1)^x/(2*x + 1))
+var r = reduce(m, 0, x y -> x + y)
+var pi = 4 * r
+print "pi = "
+out pi

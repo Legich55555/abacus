@@ -177,11 +177,41 @@ namespace Abacus
     }
   };
 
+  template <>
+  struct Sum<int, int>
+  {
+    static Universal Func(const int& l, const int& r)
+    {
+      if (((r > 0) && (l > INT_MAX - r)) ||
+          ((r < 0) && (l < INT_MIN - r)))
+      {
+        throw parse_error("Overflow", {});
+      }
+
+      return Universal(l + r);
+    }
+  };
+
   template <typename L, typename R>
   struct Subtract
   {
     static Universal Func(const L& l, const R& r)
     {
+      return Universal(l - r);
+    }
+  };
+
+  template <>
+  struct Subtract<int, int>
+  {
+    static Universal Func(const int& l, const int& r)
+    {
+      if (((r > 0) && (l < INT_MIN + r)) ||
+          ((r < 0) && (l > INT_MAX + r)))
+      {
+        throw parse_error("Overflow", {});
+      }
+
       return Universal(l - r);
     }
   };

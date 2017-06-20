@@ -1,5 +1,6 @@
 #include <cmath>
 #include <cstdlib>
+#include <climits>
 #include <iostream>
 #include <memory>
 
@@ -112,7 +113,7 @@ unsigned CheckStatement(
     return 1U;
   }
 
-  if (expectedResult.Errors.size() == result.Errors.size())
+  if (expectedResult.Errors.size() != result.Errors.size())
   {
     std::cout << "FAILED test for \"" << statement << "\"" << std::endl;
     return 1U;
@@ -237,8 +238,8 @@ int main()
         },
         Abacus::Universal(0));
 
-  errorsNumber += CheckExpression(" 1.0E-2", {}, Abacus::Universal(1.));
-  errorsNumber += CheckExpression(" 1.0E+2", {}, Abacus::Universal(1.));
+  errorsNumber += CheckExpression(" 1.0E-2", {}, Abacus::Universal(1.0E-2));
+  errorsNumber += CheckExpression(" 1.0E+2", {}, Abacus::Universal(1.0E+2));
   errorsNumber += CheckExpression(" 1.0", {}, Abacus::Universal(1.));
   errorsNumber += CheckExpression(" 1.0 ", {}, Abacus::Universal(1.));
   errorsNumber += CheckExpression("1.0 ", {}, Abacus::Universal(1.));
@@ -254,21 +255,50 @@ int main()
   errorsNumber += CheckExpression(" {  1 , 2 } ", {}, Abacus::Universal(std::vector<int>{1, 2}));
   errorsNumber += CheckExpression(" { 1,2 }", {}, Abacus::Universal(std::vector<int>{1, 2}));
   errorsNumber += CheckExpression("((1))", {},  Abacus::Universal(1));
-  errorsNumber += CheckExpression("((1 + -2 + -1*+2.0))", {},  Abacus::Universal(-3.0f));
+  errorsNumber += CheckExpression("((1 + -2 + -1*+2.0))", {},  Abacus::Universal(-3.0));
   errorsNumber += CheckExpression("1 + 1", {},  Abacus::Universal(2));
-  errorsNumber += CheckExpression("1 +2.0", {},  Abacus::Universal(3.0f));
+  errorsNumber += CheckExpression("1 +2.0", {},  Abacus::Universal(3.0));
   errorsNumber += CheckExpression("+1*+2", {}, Abacus::Universal(2));
   errorsNumber += CheckExpression("-1 + 1", {},  Abacus::Universal(0));
   errorsNumber += CheckExpression("(((1 + 2) + 3) + 4)", {},  Abacus::Universal(10));
-  errorsNumber += CheckExpression("(1 + -2 + -1*+2.0 + 10 / (3 + 2))", {},  Abacus::Universal(-1.0f));
-  errorsNumber += CheckExpression("((+1 + -2 + -1*+2 + 10 / (3 + 2)) + (4/2 + 1))+12/3", {},  Abacus::Universal(6));
-  errorsNumber += CheckExpression("(1 + -2 + -1*+2.0)", {},  Abacus::Universal(-3.0f));
-  errorsNumber += CheckExpression("((1 + -2 + -1*+2.0))", {},  Abacus::Universal(-3.0f));
+  errorsNumber += CheckExpression("(1 + -2 + -1*+2.0 + 10 / (3 + 2))", {},  Abacus::Universal(-1.0));
+  errorsNumber += CheckExpression("((+1 + -2 + -1*+2 + 10 / (3 + 2)) + (4/2 + 1))+12/3", {},  Abacus::Universal(6.0));
+  errorsNumber += CheckExpression("(1 + -2 + -1*+2.0)", {},  Abacus::Universal(-3.0));
+  errorsNumber += CheckExpression("((1 + -2 + -1*+2.0))", {},  Abacus::Universal(-3.0));
   errorsNumber += CheckExpression("((+1 + -2 + -1*+2.0 + 10 / (3 + 2)) + (4/2 + 1))+12/3", {},  Abacus::Universal(6.0));
-  errorsNumber += CheckExpression("1 + 2^(3+1)", {},  Abacus::Universal(17.f));
-  errorsNumber += CheckExpression("1 + 2^(3.0+1)", {},  Abacus::Universal(17.f));
-  errorsNumber += CheckExpression("1 + 2.0^(3+1)", {},  Abacus::Universal(17.f));
-  errorsNumber += CheckExpression("1 + 2.0^(3+1.0)", {},  Abacus::Universal(17.f));
+  errorsNumber += CheckExpression("1 + 2^(3+1)", {},  Abacus::Universal(17.));
+  errorsNumber += CheckExpression("1 + 2^(3.0+1)", {},  Abacus::Universal(17.));
+  errorsNumber += CheckExpression("1 + 2.0^(3+1)", {},  Abacus::Universal(17.));
+  errorsNumber += CheckExpression("1 + 2.0^(3+1.0)", {},  Abacus::Universal(17.));
+
+  errorsNumber += CheckInvalidExpression(
+        "a + b",
+        {
+          {"a", Abacus::Universal(INT_MAX)},
+          {"b", Abacus::Universal(INT_MAX)},
+        });
+
+  errorsNumber += CheckInvalidExpression(
+        "a + b",
+        {
+          {"a", Abacus::Universal(INT_MIN)},
+          {"b", Abacus::Universal(INT_MIN)},
+        });
+
+  errorsNumber += CheckInvalidExpression(
+        "a - b",
+        {
+          {"a", Abacus::Universal(INT_MIN)},
+          {"b", Abacus::Universal(INT_MAX)},
+        });
+
+  errorsNumber += CheckInvalidExpression(
+        "a - b",
+        {
+          {"a", Abacus::Universal(INT_MAX)},
+          {"b", Abacus::Universal(INT_MIN)},
+        });
+
 
   errorsNumber += CheckStatement(
         "var a = 5",

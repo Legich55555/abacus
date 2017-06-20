@@ -28,9 +28,12 @@ private slots:
 
     void on_actionSave_triggered();
 
+    void on_sourceEditor_cursorPositionChanged();
+
 private:
 
     void setTaskStatus(unsigned taskIdx, const QString taskResult);
+    void updateTextPosLabel();
 
     Ui::MainWindow *ui;
     int m_lastChangedBlockIdx;

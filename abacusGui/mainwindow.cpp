@@ -16,6 +16,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(&m_execQueue, &ExecQueue::BatchQueued, this, &MainWindow::on_batchQueued);
     connect(&m_execQueue, &ExecQueue::TaskDone, this, &MainWindow::on_taskDone);
     connect(&m_execQueue, &ExecQueue::TaskCancelled, this, &MainWindow::on_taskCancelled);
+
+    updateTextPosLabel();
 }
 
 MainWindow::~MainWindow()
@@ -132,6 +134,20 @@ void MainWindow::setTaskStatus(unsigned taskIdx, const QString taskResult)
     cursor.insertText(taskResult);
 }
 
+void MainWindow::updateTextPosLabel()
+{
+    auto textCursor = ui->sourceEditor->textCursor();
+    if (!textCursor.isNull())
+    {
+        QString posText = QString("%1:%2").arg(textCursor.blockNumber() + 1).arg(textCursor.columnNumber() + 1);
+        ui->cursorPosLabel->setText(posText);
+    }
+    else
+    {
+        ui->cursorPosLabel->setText("-:-");
+    }
+}
+
 void MainWindow::on_actionOpen_triggered()
 {
     QString filename = QFileDialog::getOpenFileName(this, "Open file", "", "Abacus files (*.abacus);; Any file (*)");
@@ -154,6 +170,8 @@ void MainWindow::on_actionOpen_triggered()
         ui->resultViewer->document()->clear();
 
         ui->sourceEditor->document()->setPlainText(content);
+
+        updateTextPosLabel();
     }
     else
     {
@@ -187,4 +205,9 @@ void MainWindow::on_actionSave_triggered()
     {
         // TODO: show error message.
     }
+}
+
+void MainWindow::on_sourceEditor_cursorPositionChanged()
+{
+    updateTextPosLabel();
 }

@@ -26,7 +26,7 @@ namespace Abacus
     }
     catch (const parse_error& parseError)
     {
-      std::cout << "Failed to parse expression" << std::endl;
+      std::cout << "Failed to interpret expression" << std::endl;
     }
 
     return result;
