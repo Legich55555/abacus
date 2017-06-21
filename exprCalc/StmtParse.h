@@ -142,7 +142,7 @@ namespace Abacus
           return false;
         }
 
-        ExpectChar<'"'>(input);
+        ExpectChar<'"'>(input, false);
 
         std::string text;
         if (!parse<Text, TextAction>(input, text))
