@@ -1,0 +1,13 @@
+var a = 2
+var b = 11
+var c = {a, b}
+var d = map(c, x -> 1.0 / reduce({1, x }, 1, i j -> i*j  )  )
+var e = 2 + reduce(d, 0,  x y -> x + y)
+print "Exp = " out e
+
+var a = 0
+var b = 10*1000
+var c = { a, b}
+var m = map(c, x -> (-1)^x/(2*x + 1))
+var r = reduce(m, 0, x y -> x + y)
+var pi = 4 * r print " pi = " out pi * 1

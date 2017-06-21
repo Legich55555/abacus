@@ -27,11 +27,16 @@ namespace Abacus
   struct TerminatedError { };
 
   template< char C, typename Input >
-  void ExpectChar(Input& input)
+  void ExpectChar(Input& input, bool eatFollowingSpaces = true)
   {
-    if (!parse< seq< one<C>, star<space> > >(input))
+    if (!parse<one<C>>(input))
     {
       throw parse_error(Print("Expected '%c'", C), input);
+    }
+
+    if (eatFollowingSpaces)
+    {
+      parse<star<space>>(input);
     }
   }
 

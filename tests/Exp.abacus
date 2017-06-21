@@ -1,7 +1,6 @@
 var a = 2
-var b = 9
+var b = 11
 var c = {a, b}
 var d = map(c, x -> 1.0 / reduce({1, x }, 1, i j -> i*j  )  )
 var e = 2 + reduce(d, 0,  x y -> x + y)
-print "Exp = "
-out e
+print "Exp = " out e
