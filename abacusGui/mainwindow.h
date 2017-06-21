@@ -25,18 +25,24 @@ private slots:
     void on_taskCancelled(unsigned taskIdx);
 
     void on_actionOpen_triggered();
-
     void on_actionSave_triggered();
-
+    void on_actionSaveAs_triggered();
     void on_sourceEditor_cursorPositionChanged();
 
 private:
 
     void setTaskStatus(unsigned taskIdx, const QString taskResult);
     void updateTextPosLabel();
+    void save(const QString filename);
+    void saveAs();
 
     Ui::MainWindow *ui;
+
     int m_lastChangedBlockIdx;
+
+    QString m_documentName;
+    bool m_isDirty;
+
     ExecQueue m_execQueue;
 };
 
