@@ -195,8 +195,7 @@ namespace Abacus
 
         struct Expression : seq<
                 star<space>,
-                sor< list_must< Atomic, BinaryOp, space >, Atomic >,
-                star<space>
+                sor< list< Atomic, BinaryOp, space >, Atomic >
                 > { };
         
         struct RoundBraces : seq< one<'('>, pad< Expression, space>, one<')'> > { };

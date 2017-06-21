@@ -40,9 +40,15 @@ namespace Abacus
 
     Universal Calculate()
     {
-      assert(m_values.size() > 0U);
-      assert(m_values.size() > m_operators.size());
-      assert((m_values.size() - m_operators.size()) == 1U);
+      // If there are operators then expected m_operators.size() + 1 values.
+      if (!m_operators.empty() && m_values.size() != m_operators.size() + 1)
+      {
+        position afterLastOperator = m_operators.back().Pos;
+        afterLastOperator.byte += 1;
+        afterLastOperator.byte_in_line += 1;
+
+        throw parse_error("Expected expression.", afterLastOperator);
+      }
 
       while (!m_operators.empty())
       {

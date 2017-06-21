@@ -207,7 +207,9 @@ namespace Abacus
       }
 
       ExpectComma(input);
+
       std::string lambdaParameter = ExpectIdentifier(input);
+
       ExpectArrow(input);
 
       memory_input<> inputCopy(input.current(), input.size(), "MapSequence");

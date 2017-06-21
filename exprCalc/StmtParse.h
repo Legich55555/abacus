@@ -142,7 +142,7 @@ namespace Abacus
           return false;
         }
 
-        ExpectChar<'"'>(input, false);
+        ExpectChar<'"'>(input);
 
         std::string text;
         if (!parse<Text, TextAction>(input, text))
@@ -158,8 +158,6 @@ namespace Abacus
       }
     };
 
-    struct Statement : seq< sor<Assignment, PrintExpr, PrintText>, star< space > >  { };
-
     template<typename Input>
     bool Parse(Input& input,
                const IsTerminating& isTerminating,
@@ -168,6 +166,7 @@ namespace Abacus
                std::vector<std::string>& output,
                State& newVariables)
     {
+      struct Statement : sor<Assignment, PrintExpr, PrintText> { };
       return parse<Statement>(input, isTerminating, threads, variables, output, newVariables);
     }
   }

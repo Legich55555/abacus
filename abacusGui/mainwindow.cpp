@@ -27,6 +27,18 @@ MainWindow::~MainWindow()
   delete ui;
 }
 
+void MainWindow::closeEvent(QCloseEvent* event)
+{
+  if (checkAskAndSave())
+  {
+    event->accept();
+  }
+  else
+  {
+    event->ignore();
+  }
+}
+
 void MainWindow::on_sourceEditor_textChanged()
 {
   m_isDirty = true;
@@ -187,9 +199,13 @@ void MainWindow::saveAs()
   save(filename);
 }
 
-void MainWindow::on_actionOpen_triggered()
+bool MainWindow::checkAskAndSave()
 {
-  if (m_isDirty)
+  // This function returns true if a current document is saved or
+  // user agreed that its changes can be needed.
+  bool isDocumentSavedOrCanBeDropped = false;
+
+  if (m_isDirty || (m_documentName.length() == 0 && ui->sourceEditor->document()->toPlainText().size() != 0))
   {
     QMessageBox::StandardButton reply = QMessageBox::question(this,
                                                               "Attention",
@@ -205,10 +221,30 @@ void MainWindow::on_actionOpen_triggered()
       {
         saveAs();
       }
+
+      isDocumentSavedOrCanBeDropped = !m_isDirty;
+    }
+    else
+    {
+      isDocumentSavedOrCanBeDropped = true;
     }
   }
+  else
+  {
+    isDocumentSavedOrCanBeDropped = true;
+  }
 
-  QString filename = QFileDialog::getOpenFileName(this, "Open file", "", "Abacus files (*.abacus);; Any file (*)");
+  return isDocumentSavedOrCanBeDropped;
+}
+
+void MainWindow::on_actionOpen_triggered()
+{
+  checkAskAndSave();
+
+  QString filename = QFileDialog::getOpenFileName(this,
+                                                  "Open file",
+                                                  "",
+                                                  "Abacus files (*.abacus);; Any file (*)");
   if (filename.length() == 0)
   {
     return;
@@ -242,13 +278,19 @@ void MainWindow::on_actionOpen_triggered()
 
 void MainWindow::on_actionSave_triggered()
 {
-
-
+  if (m_documentName.length() == 0)
+  {
+    saveAs();
+  }
+  else
+  {
+    save(m_documentName);
+  }
 }
 
 void MainWindow::on_actionSaveAs_triggered()
 {
-
+  saveAs();
 }
 
 void MainWindow::on_sourceEditor_cursorPositionChanged()

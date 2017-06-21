@@ -27,29 +27,33 @@ namespace Abacus
   struct TerminatedError { };
 
   template< char C, typename Input >
-  void ExpectChar(Input& input, bool eatFollowingSpaces = true)
+  void ExpectChar(Input& input)
   {
     if (!parse<one<C>>(input))
     {
       throw parse_error(Print("Expected '%c'", C), input);
     }
+  }
 
-    if (eatFollowingSpaces)
-    {
-      parse<star<space>>(input);
-    }
+  template< typename Input >
+  void IgnoreSpace(Input& input)
+  {
+    parse<star<space>>(input);
   }
 
   template< typename Input >
   void ExpectComma(Input& input)
   {
-    ExpectChar<','>(input);
+    if (!parse< seq< star<space>, one<','>, star<space> > >(input))
+    {
+      throw parse_error("Expected ','.", input);
+    }
   }
 
   template< typename Input >
   void ExpectArrow(Input& input)
   {
-    if (!parse< seq< string<'-','>' >, star<space> >>(input))
+    if (!parse< seq< star<space>, string<'-','>' >, star<space> > >(input))
     {
       throw parse_error("Expected '->'.", input);
     }
@@ -58,6 +62,7 @@ namespace Abacus
   template< typename Input >
   void ExpectClosingBracket(Input& input)
   {
+    IgnoreSpace(input);
     ExpectChar<')'>(input);
   }
 
@@ -77,8 +82,10 @@ namespace Abacus
   template< typename Input >
   std::string ExpectIdentifier(Input& input)
   {
+    IgnoreSpace(input);
+
     std::string name;
-    if (!parse< seq< identifier, star<space> >, IdentifierAction >(input, name))
+    if (!parse<identifier, IdentifierAction>(input, name))
     {
       throw parse_error("Expected lambda parameter", input);
     }

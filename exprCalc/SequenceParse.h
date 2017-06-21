@@ -28,7 +28,7 @@ namespace Abacus
                const State& variables,
                Universal& result)
     {
-      if (!parse< seq< one<'{'>, star<space> > >(input))
+      if (!parse< one<'{'> >(input))
       {
         return false;
       }
@@ -56,6 +56,7 @@ namespace Abacus
         }
       }
 
+      IgnoreSpace(input);
       ExpectChar<'}'>(input);
 
       const int step = secondValue.Integer > firstValue.Integer ? 1 : -1;

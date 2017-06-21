@@ -27,9 +27,12 @@ namespace Abacus
 
       return result;
     }
-    catch (const parse_error&)
+    catch (const parse_error& err)
     {
-      std::cout << "Failed to interpret expression" << std::endl;
+      std::string positionStr = err.positions.empty() ? "N/A" : to_string(err.positions.front());
+
+      std::cout << "Failed to interpret expression. Reason: " << err.what() <<
+                   ", pos: " << positionStr << std::endl;
     }
 
     return result;
@@ -69,6 +72,8 @@ namespace Abacus
 
           currentVariables.swap(newVariables);
           newVariables.clear();
+
+          parse< sor< plus<space>, eol, eolf >  > (input);
         }
 
         execResult.Brief = ResultBrief::SUCCEEDED;
