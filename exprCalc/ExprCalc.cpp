@@ -73,7 +73,10 @@ namespace Abacus
           currentVariables.swap(newVariables);
           newVariables.clear();
 
-          parse< sor< plus<space>, eol, eolf >  > (input);
+          if (!parse< sor< plus<space>, eol, eolf >  > (input))
+          {
+            throw parse_error("Expected 'var', 'print' or 'out'", input);
+          }
         }
 
         execResult.Brief = ResultBrief::SUCCEEDED;
