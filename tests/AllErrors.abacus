@@ -1,0 +1,35 @@
+v
+var a
+var a=
+var a=0
+print 
+print "test
+print "test"
+out a
+var s = {
+var s = { 1
+var s = { 1,
+var s = {1, 2
+var s = {1, 2}
+var c = map
+var c = map(1
+var c = map({0
+var c = map({0, 500}
+var c = map({0, 500}, 
+var c = map({0, 500}, x
+var c = map({0, 500}, x ->
+var c = map({0, 500}, x-> 2+x
+var c = map({0, 500}, x-> 2+x)
+var d =reduce
+var d =reduce(
+var d =reduce(1
+var d =reduce({0, 500}
+var d =reduce({0, 500},
+var d =reduce({0, 500}, 0
+var d =reduce({0, 500}, 0, 
+var d =reduce({0, 500}, 0, x
+var d =reduce({0, 500}, 0, x t
+var d =reduce({0, 500}, 0, x t ->
+var d =reduce({0, 500}, 0, x t -> x-t
+var d =reduce({0, 500}, 0, x t -> x-t)
+out d ou
