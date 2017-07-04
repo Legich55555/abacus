@@ -46,7 +46,7 @@ namespace Abacus
   {
     if (!parse< seq< star<space>, one<','>, star<space> > >(input))
     {
-      throw parse_error("Expected ','.", input);
+      throw parse_error("Expected ','", input);
     }
   }
 
@@ -55,7 +55,7 @@ namespace Abacus
   {
     if (!parse< seq< star<space>, string<'-','>' >, star<space> > >(input))
     {
-      throw parse_error("Expected '->'.", input);
+      throw parse_error("Expected '->'", input);
     }
   }
 

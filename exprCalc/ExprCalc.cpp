@@ -41,47 +41,35 @@ namespace Abacus
   ExecResult Execute(const std::string& statement, const State& variables, IsTerminating isTerminating)
   {
     ExecResult execResult = { ResultBrief::FAILED, {}, {}, {} };
+    State currentVariables = variables;
+    memory_input<> input(statement.data(), statement.size(), "Execute");
 
     try
     {
-      memory_input<> input(statement.data(), statement.size(), "Execute");
+        parse<star<space>>(input);
 
-      // If it is an empty statement then it is ignored without rising any error.
-      if (parse<star<space>>(input) && input.size() == 0)
-      {
-        execResult.Brief = ResultBrief::SUCCEEDED;
-        execResult.Variables = variables;
-      }
-      else
-      {
-        State currentVariables = variables;
-        State newVariables;
         while (!input.empty())
         {
-          if (!Stmt::Parse(input,
-                           isTerminating,
-                           WORK_THREADS_NUM,
-                           currentVariables,
-                           execResult.Output,
-                           newVariables))
-          {
-            throw parse_error("Expected 'var', 'print' or 'out'", input);
-          }
+          State newVariables;
+
+          bool stmtParseResult = Stmt::Parse(input,
+                                             isTerminating,
+                                             WORK_THREADS_NUM,
+                                             currentVariables,
+                                             execResult.Output,
+                                             newVariables);
 
           newVariables.insert(currentVariables.cbegin(), currentVariables.cend());
 
           currentVariables.swap(newVariables);
-          newVariables.clear();
 
-          if (!parse< sor< plus<space>, eol, eolf >  > (input))
+          if (!stmtParseResult || !parse< sor< plus<space>, eol, eolf >  > (input))
           {
             throw parse_error("Expected 'var', 'print' or 'out'", input);
           }
         }
 
         execResult.Brief = ResultBrief::SUCCEEDED;
-        execResult.Variables.swap(currentVariables);
-      }
     }
     catch (const TerminatedError&)
     {
@@ -100,6 +88,8 @@ namespace Abacus
 
       execResult.Errors.push_back(Error { err.what(), std::move(errorPositions) });
     }
+
+    execResult.Variables.swap(currentVariables);
 
     return execResult;
   }
